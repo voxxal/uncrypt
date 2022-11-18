@@ -1,0 +1,43 @@
+html, body {
+  font-family: monospace;
+}
+
+.char {
+  padding: 0.25rem;
+  display: inline-flex; 
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-size: 1.5rem;
+}
+
+.charExtraInfo {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+}
+
+.untranslatedChar {
+  font-size: 0.5em;
+  color: grey;
+  margin-right: 0.15em;
+}
+
+.frequency {
+  font-size: 0.75em;
+  color: grey;
+}
+
+
+.softSelected {
+  background: rgb(255, 255, 200);
+}
+
+.selected {
+  background: rgb(255, 255, 0);
+}
+
+.unimportant {
+  font-size: 1.5rem;
+  color: grey;
+}
