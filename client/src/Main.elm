@@ -41,7 +41,7 @@ type alias Model =
     , scrambledCharacters : Dict Char Char
     , scrambledMessage : Array Char
     , letterFrequencies : Dict Char Int
-    , i : String
+    , attribution : String
     }
 
 
@@ -65,7 +65,7 @@ init _ =
             , scrambledCharacters = Dict.empty
             , scrambledMessage = Array.empty
             , letterFrequencies = Dict.empty
-            , i = ""
+            , attribution = ""
             }
     in
     ( model
@@ -97,7 +97,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotMessage (Ok message) ->
-            ( { model | message = message.message }
+            ( { model | message = message.message, attribution = message.attribution }
             , Random.generate GotScrambledCharacters scrambleCharacters
             )
 
@@ -240,12 +240,18 @@ subscriptions model =
 
 
 -- VIEW
+-- TODO group by words
 
 
 view : Model -> Browser.Document Msg
 view model =
     { title = "Crypto Puzzles"
-    , body = model.scrambledMessage |> Array.indexedMap (viewCharacter model) |> Array.toList
+    , body =
+        (model.scrambledMessage
+            |> Array.indexedMap (viewCharacter model)
+            |> Array.toList
+        )
+            ++ [ text ("- " ++ model.attribution) ]
     }
 
 

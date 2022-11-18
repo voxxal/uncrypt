@@ -13,7 +13,11 @@ type
     message: string
     attribution: string
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, message VARCHAR(255) NOT NULL, attribution VARCHAR(127) NOT NULL)""")
+  MessageInput = object
+    message: string
+    attribution: string
+
+db.exec(sql"""CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, message VARCHAR(255) NOT NULL UNIQUE, attribution VARCHAR(127) NOT NULL)""")
 
 settings:
   port = Port 5000
@@ -36,13 +40,13 @@ proc getMessage(id: int): Message =
 
 routes:
   get "/":
-    resp(Http200, readFile("client/index.html"))
+    resp Http200, readFile("client/index.html")
 
   get "/elm.js":
-    resp(Http200, readFile("client/elm.js"), contentType = "application/javascript")
+    resp Http200, readFile("client/elm.js"), contentType = "application/javascript" 
 
   get "/style.css":
-    resp(Http200, readFile("client/style.css"), contentType = "text/css")
+    resp Http200, readFile("client/style.css"), contentType = "text/css" 
 
   get "/api":
     updateCountCache()
@@ -57,12 +61,19 @@ routes:
       id = try: parseInt(@"id")
           except ValueError: -1
     if id == -1:
-      resp(Http400, "invalid id format")
+      resp Http400, "invalid id format"
     try: 
       let message = getMessage(id)
-      resp(Http200, $(%* message), contentType = "application/json")
+      resp Http200, $(%* message), contentType = "application/json"
     except GetMessageError as e: resp(Http404, e.msg)
 
-
+  post "/api/submit":  
+    try: 
+      let payload = parseJson(request.body)
+      let message = to(payload, MessageInput)
+      db.exec(sql"INSERT INTO messages (message, attribution) VALUES (?, ?)", message.message, message.attribution)
+      resp "success"
+    except: resp Http401, "invalid"
+    
 runforever()
 
