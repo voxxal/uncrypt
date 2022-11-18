@@ -8,12 +8,12 @@ import Dict.Extra
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
+import Http
 import Json.Decode as D
 import Maybe.Extra
 import Random
 import Random.List
 import Set
-import String.Extra
 
 
 
@@ -59,7 +59,7 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     let
         model =
-            { message = "Do you know about that one song that goes like \"Never gonna give you up, never gonna let you down?\""
+            { message = ""
             , translation = Dict.empty
             , index = 0
             , scrambledCharacters = Dict.empty
@@ -69,7 +69,7 @@ init _ =
             }
     in
     ( model
-    , Random.generate GotScrambledCharacters scrambleCharacters
+    , Http.get { url = "/api", expect = Http.expectJson GotMessage messageDecoder }
     )
 
 
@@ -77,8 +77,18 @@ init _ =
 -- UPDATE
 
 
+type alias Message =
+    { message : String, attribution : String }
+
+
+messageDecoder : D.Decoder Message
+messageDecoder =
+    D.map2 Message (D.field "message" D.string) (D.field "attribution" D.string)
+
+
 type Msg
-    = GotScrambledCharacters (List Char)
+    = GotMessage (Result Http.Error Message)
+    | GotScrambledCharacters (List Char)
     | KeyPress String
     | Clicked Int
 
@@ -86,6 +96,16 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GotMessage (Ok message) ->
+            ( { model | message = message.message }
+            , Random.generate GotScrambledCharacters scrambleCharacters
+            )
+
+        GotMessage (Err _) ->
+            ( { model | message = "Something went wrong when fetching the message. But you can solve this instead" }
+            , Random.generate GotScrambledCharacters scrambleCharacters
+            )
+
         GotScrambledCharacters scrambled ->
             let
                 characters =
