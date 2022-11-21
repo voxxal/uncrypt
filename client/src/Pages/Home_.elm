@@ -1,29 +1,29 @@
-module Main exposing (main)
+module Pages.Home_ exposing (Model, Msg, page)
 
 import Array exposing (Array)
-import Browser
 import Browser.Events exposing (onKeyDown)
 import Dict exposing (Dict)
-import Dict.Extra
+import Dict.Extra as Dict
+import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Http
 import Json.Decode as D
-import Maybe.Extra
+import Maybe.Extra as Maybe
+import Page exposing (Page)
 import Random
 import Random.List
+import Route exposing (Route)
 import Set
+import Shared
 import Time
+import View exposing (View)
 
 
-
--- MAIN
-
-
-main : Program () Model Msg
-main =
-    Browser.document
+page : Shared.Model -> Route () -> Page Model Msg
+page shared route =
+    Page.new
         { init = init
         , update = update
         , subscriptions = subscriptions
@@ -32,12 +32,13 @@ main =
 
 
 
--- MODEL
+-- INIT
 
 
 type alias Model =
     { message : String
     , translation : Dict Char Char
+    , reverseTrans : Dict Char (List Char)
     , index : Int
     , scrambledCharacters : Dict Char Char
     , scrambledMessage : Array Char
@@ -56,12 +57,13 @@ scrambleCharacters =
     Random.List.shuffle letters
 
 
-init : () -> ( Model, Cmd Msg )
+init : () -> ( Model, Effect Msg )
 init _ =
     let
         model =
             { message = ""
             , translation = Dict.empty
+            , reverseTrans = Dict.empty
             , index = 0
             , scrambledCharacters = Dict.empty
             , scrambledMessage = Array.empty
@@ -70,7 +72,7 @@ init _ =
             }
     in
     ( model
-    , Http.get { url = "/api", expect = Http.expectJson GotMessage messageDecoder }
+    , Http.get { url = "/api", expect = Http.expectJson GotMessage messageDecoder } |> Effect.fromCmd
     )
 
 
@@ -94,17 +96,17 @@ type Msg
     | Clicked Int
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
         GotMessage (Ok message) ->
             ( { model | message = message.message, attribution = message.attribution }
-            , Random.generate GotScrambledCharacters scrambleCharacters
+            , Random.generate GotScrambledCharacters scrambleCharacters |> Effect.fromCmd
             )
 
         GotMessage (Err _) ->
             ( { model | message = "Something went wrong when fetching the message. But you can solve this instead" }
-            , Random.generate GotScrambledCharacters scrambleCharacters
+            , Random.generate GotScrambledCharacters scrambleCharacters |> Effect.fromCmd
             )
 
         GotScrambledCharacters scrambled ->
@@ -133,14 +135,14 @@ update msg model =
                         |> String.toList
 
                 letterFrequencies =
-                    Dict.Extra.frequencies scrambledMessage
+                    Dict.frequencies scrambledMessage
             in
             ( { model
                 | scrambledCharacters = scrambledCharacters
                 , scrambledMessage = scrambledMessage |> Array.fromList
                 , letterFrequencies = letterFrequencies
               }
-            , Cmd.none
+            , Effect.none
             )
 
         KeyPress key ->
@@ -175,7 +177,7 @@ update msg model =
                     case Array.get (model.index + num) model.scrambledMessage of
                         Just char ->
                             if Char.isAlpha char then
-                                Maybe.Extra.unwrap num
+                                Maybe.unwrap num
                                     (\_ -> shiftOverAnswered newTranslation (num + sign num))
                                     (Dict.get char newTranslation)
 
@@ -189,16 +191,21 @@ update msg model =
                 "Backspace" ->
                     case Array.get model.index model.scrambledMessage of
                         Just char ->
-                            ( { model | translation = Dict.remove char model.translation, index = model.index + shift -1 }, Cmd.none )
+                            ( { model
+                                | index = model.index + shift -1
+                                , translation = Dict.remove char model.translation
+                              }
+                            , Effect.none
+                            )
 
                         Nothing ->
-                            ( model, Cmd.none )
+                            ( model, Effect.none )
 
                 "ArrowLeft" ->
-                    ( { model | index = model.index + shift -1 }, Cmd.none )
+                    ( { model | index = model.index + shift -1 }, Effect.none )
 
                 "ArrowRight" ->
-                    ( { model | index = model.index + shift 1 }, Cmd.none )
+                    ( { model | index = model.index + shift 1 }, Effect.none )
 
                 any ->
                     case String.uncons any of
@@ -208,26 +215,27 @@ update msg model =
                                     Just char ->
                                         let
                                             newTranslation =
-                                                Dict.insert char pressedKey model.translation
+                                                Dict.insert char pressedKey model.translation                                                
                                         in
                                         ( { model
                                             | index = model.index + shiftOverAnswered newTranslation 1
                                             , translation = newTranslation
+                                            , reverseTrans = Dict.insertDedupe (++) pressedKey [ char ] model.reverseTrans
                                           }
-                                        , Cmd.none
+                                        , Effect.none
                                         )
 
                                     _ ->
-                                        ( model, Cmd.none )
+                                        ( model, Effect.none )
 
                             else
-                                ( model, Cmd.none )
+                                ( model, Effect.none )
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( model, Effect.none )
 
         Clicked index ->
-            ( { model | index = index }, Cmd.none )
+            ( { model | index = index }, Effect.none )
 
 
 
@@ -243,10 +251,9 @@ subscriptions model =
 
 
 -- VIEW
--- TODO group by words
 
 
-view : Model -> Browser.Document Msg
+view : Model -> View Msg
 view model =
     let
         words =
@@ -255,7 +262,7 @@ view model =
                 |> List.foldr
                     (\( i, c ) acc ->
                         case acc of
-                            ( xi, xa ) :: xs ->
+                            ( _, xa ) :: xs ->
                                 if c /= ' ' then
                                     ( i, String.fromChar c ++ xa ) :: xs
 
@@ -283,20 +290,13 @@ viewCharacter : Model -> Int -> Char -> Html Msg
 viewCharacter model index char =
     let
         bigChar =
-            Maybe.Extra.unwrap
-                char
+            Maybe.unwrap
+                ' '
                 Char.toUpper
                 (Dict.get char model.translation)
 
-        smallChar =
-            if bigChar /= char then
-                String.fromChar char
-
-            else
-                ""
-
         frequency =
-            Maybe.Extra.unwrap ""
+            Maybe.unwrap ""
                 String.fromInt
                 (Dict.get char model.letterFrequencies)
 
@@ -312,15 +312,14 @@ viewCharacter model index char =
                 [ Attr.classList
                     [ ( "selected", selected )
                     , ( "softSelected", softSelected )
+                    , ( "translatedChar", True )
                     ]
                 , Events.onClick (Clicked index)
                 ]
                 [ text (String.fromChar bigChar) ]
-            , div [ Attr.class "charExtraInfo" ]
-                [ span [ Attr.class "untranslatedChar" ] [ text smallChar ]
-                , span [ Attr.class "frequency" ] [ text frequency ]
-                ]
+            , span [ Attr.class "untranslatedChar" ] [ text (String.fromChar char) ]
+            , span [ Attr.class "frequency" ] [ text frequency ]
             ]
 
     else
-        span [ Attr.class "unimportant" ] [ text (String.fromChar bigChar) ]
+        span [ Attr.class "unimportant" ] [ text (String.fromChar char) ]

@@ -21,6 +21,7 @@ db.exec(sql"""CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, message
 
 settings:
   port = Port 5000
+  staticDir = "./client/dist"
 
 proc updateCountCache() =
   echo "updating cache"
@@ -39,15 +40,6 @@ proc getMessage(id: int): Message =
       Message(id: parseInt(row[0]), message: row[1], attribution: row[2])
 
 routes:
-  get "/":
-    resp Http200, readFile("client/index.html")
-
-  get "/elm.js":
-    resp Http200, readFile("client/elm.js"), contentType = "application/javascript" 
-
-  get "/style.css":
-    resp Http200, readFile("client/style.css"), contentType = "text/css" 
-
   get "/api":
     if now() >= lastCountUpdate + 1.hours: updateCountCache()
 
