@@ -186,6 +186,17 @@ update msg model =
 
                         Nothing ->
                             0
+
+                removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
+                removeFromDictLists char =
+                    Dict.map
+                        (\k v ->
+                            if List.member char v then
+                                List.filter (\c -> c /= char) v
+
+                            else
+                                v
+                        )
             in
             case key of
                 "Backspace" ->
@@ -194,16 +205,7 @@ update msg model =
                             ( { model
                                 | index = model.index + shift -1
                                 , translation = Dict.remove char model.translation
-                                , reverseTrans =
-                                    Dict.map
-                                        (\k v ->
-                                            if List.member char v then
-                                                List.filter (\c -> c /= char) v
-
-                                            else
-                                                v
-                                        )
-                                        model.reverseTrans
+                                , reverseTrans = removeFromDictLists char model.reverseTrans
                               }
                             , Effect.none
                             )
@@ -224,13 +226,28 @@ update msg model =
                                 case Array.get model.index model.scrambledMessage of
                                     Just char ->
                                         let
+                                            maybeOldChar =
+                                                Dict.get char model.translation
+
                                             newTranslation =
                                                 Dict.insert char pressedKey model.translation
                                         in
                                         ( { model
                                             | index = model.index + shiftOverAnswered newTranslation 1
                                             , translation = newTranslation
-                                            , reverseTrans = Dict.insertDedupe (++) pressedKey [ char ] model.reverseTrans
+                                            , reverseTrans =
+                                                model.reverseTrans
+                                                    |> (case maybeOldChar of
+                                                            Just _ ->
+                                                                removeFromDictLists char
+
+                                                            Nothing ->
+                                                                identity
+                                                       )
+                                                    |> Dict.insertDedupe
+                                                        (++)
+                                                        pressedKey
+                                                        [ char ]
                                           }
                                         , Effect.none
                                         )
