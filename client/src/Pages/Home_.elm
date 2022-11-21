@@ -194,6 +194,16 @@ update msg model =
                             ( { model
                                 | index = model.index + shift -1
                                 , translation = Dict.remove char model.translation
+                                , reverseTrans =
+                                    Dict.map
+                                        (\k v ->
+                                            if List.member char v then
+                                                List.filter (\c -> c /= char) v
+
+                                            else
+                                                v
+                                        )
+                                        model.reverseTrans
                               }
                             , Effect.none
                             )
@@ -215,7 +225,7 @@ update msg model =
                                     Just char ->
                                         let
                                             newTranslation =
-                                                Dict.insert char pressedKey model.translation                                                
+                                                Dict.insert char pressedKey model.translation
                                         in
                                         ( { model
                                             | index = model.index + shiftOverAnswered newTranslation 1
@@ -305,6 +315,14 @@ viewCharacter model index char =
 
         softSelected =
             not selected && Just char == Array.get model.index model.scrambledMessage
+
+        collision =
+            case Dict.get char model.translation of
+                Just decoded ->
+                    Maybe.unwrap False (\l -> List.length l > 1) (Dict.get decoded model.reverseTrans)
+
+                Nothing ->
+                    False
     in
     if Char.isAlpha char then
         div [ Attr.class "char" ]
@@ -313,6 +331,7 @@ viewCharacter model index char =
                     [ ( "selected", selected )
                     , ( "softSelected", softSelected )
                     , ( "translatedChar", True )
+                    , ( "collision", collision )
                     ]
                 , Events.onClick (Clicked index)
                 ]
