@@ -14,6 +14,7 @@ import Maybe.Extra
 import Random
 import Random.List
 import Set
+import Time
 
 
 
@@ -235,7 +236,9 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    onKeyDown (D.field "key" D.string) |> Sub.map KeyPress
+    Sub.batch
+        [ onKeyDown (D.field "key" D.string) |> Sub.map KeyPress
+        ]
 
 
 
@@ -245,14 +248,35 @@ subscriptions model =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        words =
+            model.scrambledMessage
+                |> Array.toIndexedList
+                |> List.foldr
+                    (\( i, c ) acc ->
+                        case acc of
+                            ( xi, xa ) :: xs ->
+                                if c /= ' ' then
+                                    ( i, String.fromChar c ++ xa ) :: xs
+
+                                else
+                                    ( i, "" ) :: acc
+
+                            [] ->
+                                [ ( i, String.fromChar c ) ]
+                    )
+                    []
+    in
     { title = "Crypto Puzzles"
     , body =
-        (model.scrambledMessage
-            |> Array.indexedMap (viewCharacter model)
-            |> Array.toList
-        )
+        List.map (\( i, word ) -> viewWord model i word) words
             ++ [ text ("- " ++ model.attribution) ]
     }
+
+
+viewWord : Model -> Int -> String -> Html Msg
+viewWord model index word =
+    div [ Attr.class "word" ] (List.indexedMap (\i c -> viewCharacter model (index + i) c) (String.toList word))
 
 
 viewCharacter : Model -> Int -> Char -> Html Msg

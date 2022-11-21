@@ -23,13 +23,13 @@ settings:
   port = Port 5000
 
 proc updateCountCache() =
-  if now() >= lastCountUpdate + 1.hours:
-    echo "updating cache"
-    let query = db.getRow(sql"SELECT count(id) FROM messages")
-    try: count = parseInt(query[0])
-    except: discard
-    lastCountUpdate = now()
-  else: discard
+  echo "updating cache"
+  let query = db.getRow(sql"SELECT count(id) FROM messages")
+  try: count = parseInt(query[0])
+  except: discard
+  lastCountUpdate = now()
+
+updateCountCache()
 
 proc getMessage(id: int): Message =
     let row = db.getRow(sql"SELECT id, message, attribution FROM messages WHERE id=?", id)
@@ -49,7 +49,7 @@ routes:
     resp Http200, readFile("client/style.css"), contentType = "text/css" 
 
   get "/api":
-    updateCountCache()
+    if now() >= lastCountUpdate + 1.hours: updateCountCache()
 
     try: 
       let message = getMessage(rand(1..count));
@@ -75,5 +75,5 @@ routes:
       resp "success"
     except: resp Http401, "invalid"
     
-runforever()
 
+runforever()
