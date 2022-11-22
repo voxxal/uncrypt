@@ -128,6 +128,7 @@ type Msg
     | KeyPress String
     | Clicked Int
     | Check
+    | TryAnother
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -343,6 +344,9 @@ update msg model =
                 _ ->
                     ( model, Effect.none )
 
+        TryAnother ->
+            init ()
+
 
 
 -- SUBSCRIPTIONS
@@ -390,6 +394,28 @@ view model =
                         Just (c |> Char.toUpper |> String.fromChar)
                 )
                 letters
+
+        modalBox =
+            case model.timing of
+                Finished _ timeTaken ->
+                    div [ Attr.class "modal" ]
+                        [ div [ Attr.class "modalContent" ]
+                            [ h1 [] [ text "Congratulations!" ]
+                            , div []
+                                [ text "You completed the Aristocrat in "
+                                , strong [] [ text (String.fromFloat (toFloat timeTaken / 1000)) ]
+                                , text " seconds!"
+                                ]
+                            , div [ Attr.class "messageContainer" ]
+                                [ div [ Attr.class "message" ] [ text ("\"" ++ model.message ++ "\"") ]
+                                , div [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
+                                ]
+                            , button [ Attr.class "button greenButton", Events.onClick TryAnother ] [ text "Try another" ]
+                            ]
+                        ]
+
+                _ ->
+                    text ""
     in
     { title = "Aristocrat"
     , body =
@@ -415,7 +441,8 @@ view model =
                     )
                 , button
                     [ Attr.classList
-                        [ ( "check", True )
+                        [ ( "button", True )
+                        , ( "greenButton", True )
                         , ( "shake", model.solved == Failure )
                         ]
                     , Events.onClick Check
@@ -423,6 +450,7 @@ view model =
                     [ text "Check" ]
                 ]
             ]
+        , modalBox
         ]
     }
 
