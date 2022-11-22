@@ -1,4 +1,4 @@
-import times, jester, db_postgres, dotenv, os, strformat, strutils, sequtils, random, json
+import times, jester, db_postgres, dotenv, os, strformat, strutils, sequtils, random, json, options
 
 load()
 var count = 1
@@ -15,9 +15,10 @@ type
 
   MessageInput = object
     message: string
-    attribution: string
+    attribution: Option[string]
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, message VARCHAR(255) NOT NULL UNIQUE, attribution VARCHAR(127) NOT NULL)""")
+db.exec(sql"""CREATE TABLE IF NOT EXISTS messages(id SERIAL PRIMARY KEY, message VARCHAR(255) NOT NULL UNIQUE, attribution VARCHAR(127))""")
+db.exec(sql"""CREATE TABLE IF NOT EXISTS submissions(id SERIAL PRIMARY KEY, message VARCHAR(255) NOT NULL UNIQUE, attribution VARCHAR(127), accepted BOOLEAN NOT NULL)""")
 
 settings:
   port = Port 5000
@@ -63,9 +64,12 @@ routes:
     try: 
       let payload = parseJson(request.body)
       let message = to(payload, MessageInput)
-      db.exec(sql"INSERT INTO messages (message, attribution) VALUES (?, ?)", message.message, message.attribution)
+      db.exec(sql"INSERT INTO submissions (message, attribution, accepted) VALUES (?, ?, FALSE)", message.message, message.attribution)
       resp "success"
     except: resp Http401, "invalid"
+
+  get "/@url":
+    resp Http200, readFile("./client/dist/index.html")
     
 
 runforever()
