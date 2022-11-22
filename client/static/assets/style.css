@@ -106,6 +106,13 @@ body {
   color: grey;
 }
 
+.attribution {
+  float:right;
+  margin-right: 2rem;
+  font-style: italic;
+  color: grey;
+}
+
 @keyframes horizontal-shaking {
   0% {
     transform: translateX(0);
