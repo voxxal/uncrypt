@@ -22,6 +22,7 @@ import Task
 import Time
 import View exposing (View)
 
+-- TODO letter is a better word than character.
 
 layout : Layout
 layout =
@@ -223,13 +224,14 @@ update msg model =
                 removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
                 removeFromDictLists char =
                     Dict.map
-                        (\k v ->
+                        (\_ v ->
                             if List.member char v then
                                 List.filter (\c -> c /= char) v
 
                             else
                                 v
                         )
+                        >> Dict.filter (\_ v -> not (List.isEmpty v))
             in
             case key of
                 "Backspace" ->
@@ -386,11 +388,19 @@ view model =
     , body =
         [ div [ Attr.class "content" ]
             [ div [ Attr.class "puzzle" ]
-                [ div [] (List.map (\( i, word ) -> viewWord model i word) words)
+                [ h2 [ Attr.class "heading" ] [ text "PUZZLE" ]
+                , div [] (List.map (\( i, word ) -> viewWord model i word) words)
                 , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
                 ]
             , div [ Attr.class "controls" ]
-                [ div [ Attr.class "remainingLetters" ] (List.map (\c -> span [] [ text c ]) remainingCharacters)
+                [ h2 [ Attr.class "heading" ] [ text "REMAINING LETTERS" ]
+                , div [ Attr.class "remainingLetters" ]
+                    (List.map
+                        (\c ->
+                            span [ Attr.class "remainingLetter" ] [ text c ]
+                        )
+                        remainingCharacters
+                    )
                 , button
                     [ Attr.classList
                         [ ( "check", True )

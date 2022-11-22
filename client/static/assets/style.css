@@ -38,18 +38,25 @@ body {
   margin: 2rem 3rem;
 }
 
+.heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0.15rem;
+}
+
 .puzzle {
   font-size: 1.5rem;
 }
 
 .word {
   display: inline-block;
-  margin-right: 1rem;
+  margin-right: 1.5rem;
   margin-bottom: 1rem;
 }
 
 .char {
-  padding: 0.25rem;
+  padding: 0.15em;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -115,6 +122,15 @@ body {
   100% {
     transform: translateX(0);
   }
+}
+
+.remainingLetters {
+  margin-bottom: 0.5rem;
+}
+
+.remainingLetter {
+  padding: 0.25rem;
+  display: inline-block;
 }
 
 .check {
