@@ -22,7 +22,10 @@ import Task
 import Time
 import View exposing (View)
 
+
+
 -- TODO letter is a better word than character.
+
 
 layout : Layout
 layout =
@@ -233,78 +236,82 @@ update msg model =
                         )
                         >> Dict.filter (\_ v -> not (List.isEmpty v))
             in
-            case key of
-                "Backspace" ->
-                    case Array.get model.index model.scrambledMessage of
-                        Just char ->
-                            ( { model
-                                | index = model.index + shift -1
-                                , translation = Dict.remove char model.translation
-                                , reverseTrans = removeFromDictLists char model.reverseTrans
-                              }
-                            , Effect.none
-                            )
+            if model.solved /= Solved then
+                case key of
+                    "Backspace" ->
+                        case Array.get model.index model.scrambledMessage of
+                            Just char ->
+                                ( { model
+                                    | index = model.index + shift -1
+                                    , translation = Dict.remove char model.translation
+                                    , reverseTrans = removeFromDictLists char model.reverseTrans
+                                  }
+                                , Effect.none
+                                )
 
-                        Nothing ->
-                            ( model, Effect.none )
-
-                "ArrowLeft" ->
-                    ( { model | index = model.index + shift -1 }, Effect.none )
-
-                "ArrowRight" ->
-                    ( { model | index = model.index + shift 1 }, Effect.none )
-
-                any ->
-                    case String.uncons any of
-                        Just ( pressedKey, "" ) ->
-                            let
-                                letter =
-                                    Char.toLower pressedKey
-                            in
-                            if Char.isAlpha pressedKey then
-                                case Array.get model.index model.scrambledMessage of
-                                    Just char ->
-                                        let
-                                            maybeOldChar =
-                                                Dict.get char model.translation
-
-                                            newTranslation =
-                                                Dict.insert char letter model.translation
-                                        in
-                                        ( { model
-                                            | index = model.index + shiftOverAnswered newTranslation 1
-                                            , translation = newTranslation
-                                            , reverseTrans =
-                                                model.reverseTrans
-                                                    |> (case maybeOldChar of
-                                                            Just _ ->
-                                                                removeFromDictLists char
-
-                                                            Nothing ->
-                                                                identity
-                                                       )
-                                                    |> Dict.insertDedupe
-                                                        (++)
-                                                        letter
-                                                        [ char ]
-                                            , solved = NotChecked
-                                          }
-                                        , case model.timing of
-                                            NotStarted ->
-                                                Task.perform GotStartTime Time.now |> Effect.fromCmd
-
-                                            _ ->
-                                                Effect.none
-                                        )
-
-                                    _ ->
-                                        ( model, Effect.none )
-
-                            else
+                            Nothing ->
                                 ( model, Effect.none )
 
-                        _ ->
-                            ( model, Effect.none )
+                    "ArrowLeft" ->
+                        ( { model | index = model.index + shift -1 }, Effect.none )
+
+                    "ArrowRight" ->
+                        ( { model | index = model.index + shift 1 }, Effect.none )
+
+                    any ->
+                        case String.uncons any of
+                            Just ( pressedKey, "" ) ->
+                                let
+                                    letter =
+                                        Char.toLower pressedKey
+                                in
+                                if Char.isAlpha pressedKey then
+                                    case Array.get model.index model.scrambledMessage of
+                                        Just char ->
+                                            let
+                                                maybeOldChar =
+                                                    Dict.get char model.translation
+
+                                                newTranslation =
+                                                    Dict.insert char letter model.translation
+                                            in
+                                            ( { model
+                                                | index = model.index + shiftOverAnswered newTranslation 1
+                                                , translation = newTranslation
+                                                , reverseTrans =
+                                                    model.reverseTrans
+                                                        |> (case maybeOldChar of
+                                                                Just _ ->
+                                                                    removeFromDictLists char
+
+                                                                Nothing ->
+                                                                    identity
+                                                           )
+                                                        |> Dict.insertDedupe
+                                                            (++)
+                                                            letter
+                                                            [ char ]
+                                                , solved = NotChecked
+                                              }
+                                            , case model.timing of
+                                                NotStarted ->
+                                                    Task.perform GotStartTime Time.now |> Effect.fromCmd
+
+                                                _ ->
+                                                    Effect.none
+                                            )
+
+                                        _ ->
+                                            ( model, Effect.none )
+
+                                else
+                                    ( model, Effect.none )
+
+                            _ ->
+                                ( model, Effect.none )
+
+            else
+                ( model, Effect.none )
 
         Clicked index ->
             ( { model | index = index }, Effect.none )
@@ -387,11 +394,16 @@ view model =
     { title = "Aristocrat"
     , body =
         [ div [ Attr.class "content" ]
-            [ div [ Attr.class "puzzle" ]
-                [ h2 [ Attr.class "heading" ] [ text "PUZZLE" ]
-                , div [] (List.map (\( i, word ) -> viewWord model i word) words)
-                , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
-                ]
+            [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
+                (if Array.isEmpty model.scrambledMessage then
+                    [ text "Loading..." ]
+
+                 else
+                    [ h2 [ Attr.class "heading" ] [ text "PUZZLE" ]
+                    , div [] (List.map (\( i, word ) -> viewWord model i word) words)
+                    , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
+                    ]
+                )
             , div [ Attr.class "controls" ]
                 [ h2 [ Attr.class "heading" ] [ text "REMAINING LETTERS" ]
                 , div [ Attr.class "remainingLetters" ]
@@ -423,6 +435,9 @@ viewWord model index word =
 viewCharacter : Model -> Int -> Char -> Html Msg
 viewCharacter model index char =
     let
+        notSolved =
+            not (model.solved == Solved)
+
         bigChar =
             Maybe.unwrap
                 ' '
@@ -452,9 +467,9 @@ viewCharacter model index char =
         div [ Attr.class "char" ]
             [ span
                 [ Attr.classList
-                    [ ( "selected", selected )
-                    , ( "softSelected", softSelected )
-                    , ( "translatedChar", True )
+                    [ ( "translatedChar", True )
+                    , ( "selected", selected && notSolved )
+                    , ( "softSelected", softSelected && notSolved )
                     , ( "collision", collision )
                     ]
                 , Events.onClick (Clicked index)

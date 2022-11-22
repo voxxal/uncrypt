@@ -5,7 +5,7 @@ var count = 1
 var lastCountUpdate = now() 
 
 
-var db = open("localhost", "voxal", os.getEnv("DB_PASSWORD"), "cryptopuz")
+var db = open("localhost", os.getEnv("DB_USERNAME"), os.getEnv("DB_PASSWORD"), os.getEnv("DB_DATABASE"))
 type GetMessageError* = object of IOError
 type
   Message = object
