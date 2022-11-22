@@ -205,7 +205,7 @@ body {
 .modalContent {
   display: flex;
   flex-direction: column;
-  background-color: var(--light-grey);
+  background-color: white;
   text-align: center;
   border-radius: 0.25rem;
   padding: 1rem 2rem;

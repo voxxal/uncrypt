@@ -1,6 +1,6 @@
 # TODO
 - Hints (?) probably would be useful
-- model that pops up with info on how you did
+- ~~model that pops up with info on how you did~~
 - server side shuffling
 - settings page
 - dark theme (ASAP !!! MAH EYES R BURNIN OUT)
