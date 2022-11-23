@@ -2,8 +2,19 @@
 
 :root {
   --green: 32, 150, 56;
-  --light-grey: rgb(223, 230, 238);
-  --dark-grey: rgb(49, 63, 78);
+  --bg-light: rgb(255, 255, 255);
+  --bg-dark: rgb(23, 28, 34);
+  --text-light: rgb(49, 63, 78);
+  --text-dark: rgb(223, 230, 238);
+  --light-text-light: rgb(116, 116, 122);
+  --light-text-dark: rgb(177, 176, 192);
+  --base-shadow-light: 0px 0.4px 0.9px rgba(0, 0, 0, 0.052),
+    0px 1px 2.5px rgba(0, 0, 0, 0.075), 0px 2.4px 6px rgba(0, 0, 0, 0.098),
+    0px 8px 20px rgba(0, 0, 0, 0.15);
+  --base-shadow-dark: 0px 0.4px 0.9px rgba(255, 255, 255, 0.052),
+    0px 1px 2.5px rgba(255, 255, 255, 0.075),
+    0px 2.4px 6px rgba(255, 255, 255, 0.098),
+    0px 8px 20px rgba(255, 255, 255, 0.15);
 }
 
 html,
@@ -11,7 +22,14 @@ body {
   font-family: "Karla", -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
     Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
   margin: 0;
-  color: var(--dark-grey);
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  min-height: 100vh;
+}
+
+body.dark {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
 }
 
 .navbar {
@@ -20,7 +38,11 @@ body {
   grid-template-columns: repeat(3, 1fr);
   font-size: 1.25rem;
   padding: 1rem 2rem;
-  border-bottom: 1px solid var(--light-grey);
+  border-bottom: 1px solid var(--text-dark);
+}
+
+body.dark .navbar {
+  border-bottom: 1px solid var(--text-light);
 }
 
 .logo {
@@ -29,10 +51,18 @@ body {
   font-weight: 800;
 }
 
+body.dark .logo {
+  color: white;
+}
+
 .location {
   display: grid;
   justify-content: center;
-  color: grey;
+  color: var(--light-text-light);
+}
+
+body.dark .location {
+  color: var(--light-text-dark);
 }
 
 .content {
@@ -69,9 +99,7 @@ body {
 .translatedChar {
   cursor: pointer;
   margin-bottom: 0.15em;
-  box-shadow: 0px 0.4px 0.9px rgba(0, 0, 0, 0.052),
-    0px 1px 2.5px rgba(0, 0, 0, 0.075), 0px 2.4px 6px rgba(0, 0, 0, 0.098),
-    0px 8px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--base-shadow-light);
   border-radius: 0.25rem;
   height: 1.5em;
   width: 1.25em;
@@ -81,6 +109,10 @@ body {
   transition: box-shadow 600ms, 200ms;
 }
 
+body.dark .translatedChar {
+  box-shadow: var(--base-shadow-dark);
+}
+
 .puzzle.solved .translatedChar {
   box-shadow: none;
   cursor: default;
@@ -88,17 +120,39 @@ body {
 
 .untranslatedChar {
   font-size: 0.75em;
-  color: grey;
+  color: var(--light-text-light);
   margin-bottom: 0.25em;
 }
 
 .frequency {
   font-size: 0.75em;
-  color: grey;
+  color: var(--light-text-light);
+}
+
+.unimportant {
+  color: var(--light-text-light);
+}
+
+.attribution {
+  float: right;
+  margin-right: 2rem;
+  font-style: italic;
+  color: var(--light-text-light);
+}
+
+body.dark .untranslatedChar,
+body.dark .frequency,
+body.dark .unimportant,
+body.dark .attribution {
+  color: var(--light-text-dark);
 }
 
 .softSelected {
   background: rgb(255, 255, 200);
+}
+
+body.dark .softSelected {
+  background: rgb(120, 120, 65);
 }
 
 .selected {
@@ -106,20 +160,13 @@ body {
   cursor: default !important;
 }
 
+body.dark .selected {
+  background: rgb(160, 160, 10);
+}
+
 .collision {
   color: red;
   outline: 1px solid red;
-}
-
-.unimportant {
-  color: grey;
-}
-
-.attribution {
-  float: right;
-  margin-right: 2rem;
-  font-style: italic;
-  color: grey;
 }
 
 @keyframes horizontal-shaking {
@@ -189,15 +236,16 @@ body {
   display: grid;
   justify-content: center;
   align-items: center;
+  animation: 600ms fadeIn ease-out forwards;
+  animation-delay: 600ms;
+  opacity: 0;
 }
 
-@keyframes slideUp {
+@keyframes fadeIn {
   from {
-    transform: translateY(300%);
     opacity: 0;
   }
   to {
-    transoform: translateY(0);
     opacity: 1;
   }
 }
@@ -205,16 +253,21 @@ body {
 .modalContent {
   display: flex;
   flex-direction: column;
-  background-color: white;
+  background-color: var(--bg-light);
   text-align: center;
   border-radius: 0.25rem;
   padding: 1rem 2rem;
   width: 30rem;
   min-height: 35rem;
-  box-shadow: 0px 0.4px 0.9px rgba(0, 0, 0, 0.052),
-    0px 1px 2.5px rgba(0, 0, 0, 0.075), 0px 2.4px 6px rgba(0, 0, 0, 0.098),
-    0px 8px 20px rgba(0, 0, 0, 0.15);
-  animation: 600ms slideUp ease-out;
+  box-shadow: var(--base-shadow-light);
+  animation: 600ms fadeIn ease-out forwards;
+  animation-delay: 600ms;
+  opacity: 0;
+}
+
+body.dark .modalContent {
+  background-color: var(--bg-dark);
+  box-shadow: var(--base-shadow-dark);
 }
 
 .modalContent h1 {
