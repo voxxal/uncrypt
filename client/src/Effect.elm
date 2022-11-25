@@ -1,9 +1,9 @@
 port module Effect exposing
     ( Effect, none, batch
-    , fromCmd
+    , fromCmd, fromSharedMsg
     , pushRoute, replaceRoute, loadExternalUrl
     , map, toCmd
-    , save, confetti
+    , confetti, save
     )
 
 {-|
@@ -22,6 +22,7 @@ import Json.Encode as E
 import Route exposing (Route)
 import Route.Path
 import Route.Query
+import Shared.Msg
 import Task
 import Url exposing (Url)
 
@@ -30,6 +31,7 @@ type Effect msg
     = None
     | Batch (List (Effect msg))
     | Cmd (Cmd msg)
+    | Shared Shared.Msg.Msg
     | PushUrl String
     | ReplaceUrl String
     | LoadExternalUrl String
@@ -50,6 +52,11 @@ batch =
 fromCmd : Cmd msg -> Effect msg
 fromCmd =
     Cmd
+
+
+fromSharedMsg : Shared.Msg.Msg -> Effect msg
+fromSharedMsg =
+    Shared
 
 
 pushRoute :
@@ -117,6 +124,9 @@ map fn effect =
         Cmd cmd ->
             Cmd (Cmd.map fn cmd)
 
+        Shared msg ->
+            Shared msg
+
         PushUrl url ->
             PushUrl url
 
@@ -137,7 +147,7 @@ map fn effect =
 -}
 toCmd :
     { key : Browser.Navigation.Key
-    , fromSharedMsg : sharedMsg -> mainMsg
+    , fromSharedMsg : Shared.Msg.Msg -> mainMsg
     , fromPageMsg : msg -> mainMsg
     }
     -> Effect msg
@@ -149,6 +159,10 @@ toCmd options effect =
 
         Cmd cmd ->
             Cmd.map options.fromPageMsg cmd
+
+        Shared msg ->
+            Task.succeed msg
+                |> Task.perform options.fromSharedMsg
 
         Batch list ->
             Cmd.batch (List.map (toCmd options) list)

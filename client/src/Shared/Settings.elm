@@ -1,4 +1,15 @@
-port module Shared.Settings exposing (Setting(..), Settings, Theme(..), settingsDecoder, themeDecoder, themeEncoder, updateTheme)
+port module Shared.Settings exposing
+    ( Setting(..)
+    , Settings
+    , Theme(..)
+    , settingsDecoder
+    , settingsEncoder
+    , themeDecoder
+    , themeEncoder
+    , themeFromString
+    , themeToString
+    , updateTheme
+    )
 
 import Json.Decode as D
 import Json.Encode as E
@@ -10,39 +21,44 @@ type Theme
     | ThemeDark
 
 
-themeEncoder : Theme -> E.Value
-themeEncoder theme =
-    E.string
-        (case theme of
-            ThemeAuto ->
-                "auto"
+themeFromString : String -> Theme
+themeFromString str =
+    case str of
+        "auto" ->
+            ThemeAuto
 
-            ThemeLight ->
-                "light"
+        "light" ->
+            ThemeLight
 
-            ThemeDark ->
-                "dark"
-        )
+        "dark" ->
+            ThemeDark
+
+        _ ->
+            ThemeAuto
+
+
+themeToString : Theme -> String
+themeToString theme =
+    case theme of
+        ThemeAuto ->
+            "auto"
+
+        ThemeLight ->
+            "light"
+
+        ThemeDark ->
+            "dark"
 
 
 themeDecoder : D.Decoder Theme
 themeDecoder =
-    D.map
-        (\str ->
-            case str of
-                "auto" ->
-                    ThemeAuto
+    D.map themeFromString D.string
 
-                "light" ->
-                    ThemeLight
 
-                "dark" ->
-                    ThemeDark
+themeEncoder : Theme -> E.Value
+themeEncoder theme =
+    E.string (themeToString theme)
 
-                _ ->
-                    ThemeAuto
-        )
-        D.string
 
 port updateTheme : E.Value -> Cmd msg
 
@@ -54,6 +70,11 @@ type alias Settings =
 settingsDecoder : D.Decoder Settings
 settingsDecoder =
     D.map Settings (D.field "theme" themeDecoder)
+
+
+settingsEncoder : Settings -> E.Value
+settingsEncoder settings =
+    E.object [ ( "theme", themeEncoder settings.theme ) ]
 
 
 type Setting

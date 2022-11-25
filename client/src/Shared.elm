@@ -82,9 +82,14 @@ update route msg model =
                     case setting of
                         Settings.Theme theme ->
                             { settings | theme = theme }
+
+                sideEffect =
+                    case setting of
+                        Settings.Theme _ ->
+                            Effect.fromCmd (Settings.updateTheme (Settings.themeEncoder newSettings.theme))
             in
             ( { model | settings = newSettings }
-            , Effect.none
+            , Effect.batch [ sideEffect, Effect.save "settings" (Settings.settingsEncoder newSettings) ]
             )
 
 
