@@ -65,17 +65,19 @@ body.dark .location {
   color: var(--light-text-dark);
 }
 
-.content {
-  display: grid;
-  grid-template-columns: 5fr 1fr;
-  margin: 2rem 3rem;
-}
-
 .heading {
   font-size: 0.85rem;
   font-weight: 600;
   margin-top: 0;
   margin-bottom: 0.15rem;
+}
+
+/* ARISTOCRAT */
+
+.aristocrat-content {
+  display: grid;
+  grid-template-columns: 5fr 1fr;
+  margin: 2rem 3rem;
 }
 
 .puzzle {
@@ -225,6 +227,8 @@ body.dark .selected {
   animation: 200ms horizontal-shaking;
 }
 
+/* ARISTOCRAT END */
+
 .modal {
   position: fixed;
   z-index: 1;
@@ -287,4 +291,9 @@ body.dark .modalContent {
 
 .modalContant .greenButton {
   align-self: flex-end;
+}
+
+/* SETTINGS */
+.settings-content {
+  
 }

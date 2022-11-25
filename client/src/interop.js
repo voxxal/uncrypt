@@ -23,6 +23,12 @@ function fire(particleRatio, opts) {
 export const onReady = ({ app, env }) => {
   // PORTS
   if (app.ports) {
+    if (app.ports.saveToLocalStorage) {
+      app.ports.saveToLocalStorage.subscribe(({ key, value }) => {
+        localStorage[key] = JSON.stringify(value);
+      });
+    }
+
     if (app.ports.launchConfetti) {
       app.ports.launchConfetti.subscribe(() => {
         fire(0.25, {

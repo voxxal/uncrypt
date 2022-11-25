@@ -2,8 +2,8 @@ port module Effect exposing
     ( Effect, none, batch
     , fromCmd
     , pushRoute, replaceRoute, loadExternalUrl
-    , confetti
     , map, toCmd
+    , save, confetti
     )
 
 {-|
@@ -18,6 +18,7 @@ port module Effect exposing
 
 import Browser.Navigation
 import Dict exposing (Dict)
+import Json.Encode as E
 import Route exposing (Route)
 import Route.Path
 import Route.Query
@@ -32,6 +33,7 @@ type Effect msg
     | PushUrl String
     | ReplaceUrl String
     | LoadExternalUrl String
+    | SaveToLocalStorage { key : String, value : E.Value }
     | Confetti
 
 
@@ -75,6 +77,22 @@ loadExternalUrl =
     LoadExternalUrl
 
 
+
+-- LOCAL STORAGE
+
+
+port saveToLocalStorage : { key : String, value : E.Value } -> Cmd msg
+
+
+save : String -> E.Value -> Effect msg
+save key value =
+    SaveToLocalStorage { key = key, value = value }
+
+
+
+-- CONFETTI
+
+
 port launchConfetti : () -> Cmd msg
 
 
@@ -108,6 +126,9 @@ map fn effect =
         LoadExternalUrl url ->
             LoadExternalUrl url
 
+        SaveToLocalStorage options ->
+            SaveToLocalStorage options
+
         Confetti ->
             Confetti
 
@@ -140,6 +161,9 @@ toCmd options effect =
 
         LoadExternalUrl url ->
             Browser.Navigation.load url
+
+        SaveToLocalStorage keyValueRecord ->
+            saveToLocalStorage keyValueRecord
 
         Confetti ->
             launchConfetti ()

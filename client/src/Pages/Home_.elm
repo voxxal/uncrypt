@@ -1,10 +1,12 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
+import Dict
 import Effect exposing (Effect)
 import Html
 import Layout exposing (Layout)
 import Page exposing (Page)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import View exposing (View)
 
@@ -35,7 +37,12 @@ type alias Model =
 init : () -> ( Model, Effect Msg )
 init () =
     ( {}
-    , Effect.none
+    -- Currently aristocrat is our only thing so we'll just redirect there.
+    , Effect.pushRoute
+        { path = Route.Path.Aristocrat
+        , query = Dict.empty
+        , hash = Nothing
+        }
     )
 
 

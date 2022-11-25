@@ -185,17 +185,6 @@ update msg model =
 
         KeyPress key ->
             let
-                sign : Int -> Int
-                sign num =
-                    if num < 0 then
-                        -1
-
-                    else if num > 0 then
-                        1
-
-                    else
-                        0
-
                 shift : Int -> Int
                 shift num =
                     case Array.get (model.index + num) model.scrambledMessage of
@@ -209,7 +198,7 @@ update msg model =
                         Nothing ->
                             0
 
-                -- Dict and shift happens at the same time.
+                -- Dict and shift happens at the same time. This function takes in the dict to go over already answered letters
                 shiftOverAnswered : Dict Char Char -> Int -> Int
                 shiftOverAnswered newTranslation num =
                     case Array.get (model.index + num) model.scrambledMessage of
@@ -224,18 +213,6 @@ update msg model =
 
                         Nothing ->
                             0
-
-                removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
-                removeFromDictLists char =
-                    Dict.map
-                        (\_ v ->
-                            if List.member char v then
-                                List.filter (\c -> c /= char) v
-
-                            else
-                                v
-                        )
-                        >> Dict.filter (\_ v -> not (List.isEmpty v))
             in
             if model.solved /= Solved then
                 case key of
@@ -243,7 +220,7 @@ update msg model =
                         case Array.get model.index model.scrambledMessage of
                             Just char ->
                                 ( { model
-                                    | index = model.index + shift -1
+                                    | index = model.index + shift 1
                                     , translation = Dict.remove char model.translation
                                     , reverseTrans = removeFromDictLists char model.reverseTrans
                                   }
@@ -348,6 +325,28 @@ update msg model =
             init ()
 
 
+sign : Int -> Int
+sign num =
+    if num < 0 then
+        -1
+
+    else if num > 0 then
+        1
+
+    else
+        0
+
+removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
+removeFromDictLists char =
+    Dict.map
+        (\_ v ->
+            if List.member char v then
+                List.filter (\c -> c /= char) v
+
+            else
+                v
+        )
+        >> Dict.filter (\_ v -> not (List.isEmpty v))
 
 -- SUBSCRIPTIONS
 
@@ -419,7 +418,7 @@ view model =
     in
     { title = "Aristocrat"
     , body =
-        [ div [ Attr.class "content" ]
+        [ div [ Attr.class "aristocrat-content" ]
             [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
                 (if Array.isEmpty model.scrambledMessage then
                     [ text "Loading..." ]
