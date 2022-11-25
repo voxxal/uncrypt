@@ -1,4 +1,11 @@
 import confetti from "https://cdn.skypack.dev/canvas-confetti";
+
+export const flags = ({ env }) => {
+  return {
+    settings: JSON.parse(localStorage.settings || null),
+  };
+};
+
 let count = 200;
 let defaults = {
   origin: { y: 0.7 },
@@ -44,6 +51,33 @@ export const onReady = ({ app, env }) => {
           spread: 120,
           startVelocity: 45,
         });
+      });
+    }
+
+    if (app.ports.updateTheme) {
+      let currentAuto = "light";
+      let currentTheme = "auto";
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (event) => {
+          currentAuto = event.matches ? "dark" : "light";
+          if (currentTheme === "auto") {
+            document.body.class = currentAuto;
+          }
+        });
+
+      app.ports.updateTheme.subscribe((theme) => {
+        switch (theme) {
+          case "light":
+            document.body.className = "light";
+            break;
+          case "dark":
+            document.body.className = "dark";
+            break;
+          case "auto":
+            document.body.className = currentAuto;
+        }
+        currentTheme = theme;
       });
     }
   }

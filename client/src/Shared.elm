@@ -25,12 +25,13 @@ import Shared.Settings as Settings
 
 
 type alias Flags =
-    {}
+    { settings : Maybe Settings.Settings
+    }
 
 
 decoder : D.Decoder Flags
 decoder =
-    D.succeed {}
+    D.map Flags (D.maybe (D.field "settings" Settings.settingsDecoder))
 
 
 
@@ -45,11 +46,19 @@ type alias Model =
 init : Result D.Error Flags -> Route () -> ( Model, Effect Msg )
 init flagsResult route =
     let
+        flags : Flags
+        flags =
+            flagsResult
+                |> Result.withDefault { settings = Nothing }
+
         defaultSettings =
             { theme = Settings.ThemeAuto }
+
+        settings =
+            Maybe.withDefault defaultSettings flags.settings
     in
-    ( { settings = defaultSettings }
-    , Effect.none
+    ( { settings = settings }
+    , Effect.fromCmd (Settings.updateTheme (Settings.themeEncoder settings.theme))
     )
 
 

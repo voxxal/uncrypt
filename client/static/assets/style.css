@@ -106,7 +106,7 @@ body.dark .location {
   padding-top: 0.25em;
   text-align: center;
   white-space: pre;
-  transition: box-shadow 600ms, 200ms;
+  transition: box-shadow 600ms;
 }
 
 body.dark .translatedChar {
@@ -152,7 +152,7 @@ body.dark .attribution {
 }
 
 body.dark .softSelected {
-  background: rgb(120, 120, 65);
+  background: rgb(72, 72, 42);
 }
 
 .selected {
@@ -161,13 +161,14 @@ body.dark .softSelected {
 }
 
 body.dark .selected {
-  background: rgb(160, 160, 10);
+  background: rgb(96, 72, 10);
 }
 
 .collision {
-  color: red;
+  color: red; 
   outline: 1px solid red;
 }
+/* reds are quite harsh, i need to create a dark theme variant here */
 
 @keyframes horizontal-shaking {
   0% {
