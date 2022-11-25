@@ -64,7 +64,11 @@ routes:
     try: 
       let payload = parseJson(request.body)
       let message = to(payload, MessageInput)
-      db.exec(sql"INSERT INTO submissions (message, attribution, accepted) VALUES (?, ?, FALSE)", message.message, message.attribution)
+      if message.attribution.isSome:
+        db.exec(sql"INSERT INTO submissions (message, attribution, accepted) VALUES (?, ?, FALSE)", message.message, message.attribution)
+      else:
+        db.exec(sql"INSERT INTO submissions (message, accepted) VALUES (?, FALSE)", message.message)
+
       resp "success"
     except: resp Http401, "invalid"
 
