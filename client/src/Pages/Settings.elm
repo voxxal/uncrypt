@@ -84,8 +84,8 @@ view shared model =
     in
     { title = "Settings"
     , body =
-        [ div [ Attr.class "settings-content" ]
-            [ label [ Attr.class "heading", Attr.for "theme" ] [ text "THEME" ]
+        [ div [ Attr.class "settings-content text-content" ]
+            [ label [ Attr.class "heading", Attr.for "theme" ] [ text "THEME: " ]
             , select
                 [ Attr.name "theme"
                 , Attr.id "theme"

@@ -216,6 +216,8 @@ update msg model =
             in
             if model.solved /= Solved then
                 case key of
+                    "Enter" ->
+                        update Check model
                     "Backspace" ->
                         case Array.get model.index model.scrambledMessage of
                             Just char ->

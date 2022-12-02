@@ -11,8 +11,8 @@ layout { page } =
     , body =
         [ nav [ Attr.class "navbar" ]
             [ a [ Attr.class "logo", Attr.href "/" ] [ text "cryptow/eve" ]
-            , div [ Attr.class "location"] [ text page.title ]
-            , div [] []
+            , div [ Attr.class "location" ] [ text page.title ]
+            , a [ Attr.class "options", Attr.href "/settings" ] [ text "Settings" ]
             ]
         , div [ Attr.class "page" ] page.body
         ]

@@ -65,6 +65,17 @@ body.dark .location {
   color: var(--light-text-dark);
 }
 
+.options {
+  display: grid;
+  justify-content: right;
+  text-decoration: none;
+  color: var(--text-light);
+}
+
+body.dark .options {
+  color: var(--text-dark);
+}
+
 .heading {
   font-size: 0.85rem;
   font-weight: 600;
@@ -127,7 +138,7 @@ body.dark .translatedChar {
 }
 
 .frequency {
-  font-size: 0.75em;
+  font-size: 0.55em;
   color: var(--light-text-light);
 }
 
@@ -167,7 +178,7 @@ body.dark .selected {
 }
 
 .collision {
-  color: red; 
+  color: red;
   outline: 1px solid red;
 }
 /* reds are quite harsh, i need to create a dark theme variant here */
@@ -294,6 +305,21 @@ body.dark .modalContent {
 }
 
 /* SETTINGS */
-.settings-content {
-  
+
+.page {
+  display: flex;
+  justify-content: center;
+}
+
+.text-content {
+  width: 50rem;
+  margin: 2rem 3rem;
+}
+
+.text-content a {
+  color: var(--bg-dark);
+}
+
+body.dark .text-content a {
+  color: var(--bg-white);
 }

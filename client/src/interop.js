@@ -63,15 +63,18 @@ export const onReady = ({ app, env }) => {
     if (app.ports.updateTheme) {
       let currentAuto = "light";
       let currentTheme = "auto";
+
+      const updateAutoTheme = (event) => {
+        currentAuto = event.matches ? "dark" : "light";
+        if (currentTheme === "auto") {
+          document.body.className = currentAuto;
+        }
+      };
       window
         .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (event) => {
-          currentAuto = event.matches ? "dark" : "light";
-          if (currentTheme === "auto") {
-            document.body.class = currentAuto;
-          }
-        });
-
+        .addEventListener("change", updateAutoTheme);
+      
+      updateAutoTheme(window.matchMedia("(prefers-color-scheme: dark)"));
       app.ports.updateTheme.subscribe((theme) => {
         switch (theme) {
           case "light":
