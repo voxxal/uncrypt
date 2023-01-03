@@ -3,7 +3,11 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use axum::{routing::get, Extension, Json, Router};
+use axum::{
+    http::StatusCode,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use rand::seq::SliceRandom;
@@ -11,7 +15,10 @@ use rand::thread_rng;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::AppResult, models::Message, DbPool};
+use crate::{
+    error::{AppError, AppResult},
+    DbPool,
+};
 use anyhow::anyhow;
 
 type SubAlphabet = HashMap<char, char>;
@@ -28,7 +35,14 @@ struct AristocratResponse {
     message: String,
     sig: String,
     timestamp: u128,
-    attribution: Option<String>,
+    attribution: String,
+}
+
+fn get_timestamp() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("time went backwards")
+        .as_millis()
 }
 
 fn random_sub_alphabet() -> SubAlphabet {
@@ -62,10 +76,7 @@ async fn get_aristocrat(
         .map(|c| *sub_alphabet.get(&c.to_ascii_lowercase()).unwrap_or(&c))
         .collect();
 
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis();
+    let timestamp = get_timestamp();
 
     // The timestamp is always 16 bytes, so we can split there to get the timestamp
     let tag = hmac::sign(
@@ -81,21 +92,20 @@ async fn get_aristocrat(
         message: ciphertext,
         sig: base64::encode(tag.as_ref()),
         timestamp,
-        attribution: msg_info.1,
+        attribution: msg_info.1.unwrap_or("Unknown".to_string()),
     }))
 }
 
 #[derive(Deserialize)]
-struct AristocratCompleteRequest {
+struct AristocratSolutionSubmitRequest {
     message: String,
     sig: String,
     timestamp: u128,
 }
 
-#[axum::debug_handler]
 async fn post_aristocrat(
     Extension(hmac_key): Extension<hmac::Key>,
-    Json(req): Json<AristocratCompleteRequest>,
+    Json(req): Json<AristocratSolutionSubmitRequest>,
 ) -> AppResult<Json<u128>> {
     if let Ok(()) = hmac::verify(
         &hmac_key,
@@ -106,12 +116,17 @@ async fn post_aristocrat(
         .concat(),
         &base64::decode(req.sig.as_bytes().to_vec())?,
     ) {
-        return Ok(Json(req.timestamp));
+        return Ok(Json(get_timestamp() - req.timestamp));
     }
 
-    Err(anyhow!("Something went wrong").into())
+    Err(AppError::from(
+        StatusCode::EXPECTATION_FAILED,
+        "The puzzle is incorrect",
+    ))
 }
 
 pub fn app() -> Router {
-    Router::new().route("/aristocrat", get(get_aristocrat).post(post_aristocrat))
+    Router::new()
+        .route("/new", get(get_aristocrat))
+        .route("/submit", post(post_aristocrat))
 }

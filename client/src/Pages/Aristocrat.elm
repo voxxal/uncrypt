@@ -10,6 +10,7 @@ import Html.Attributes as Attr
 import Html.Events as Events
 import Http
 import Json.Decode as D
+import Json.Encode as E
 import Layout exposing (Layout)
 import Maybe.Extra as Maybe
 import Page exposing (Page)
@@ -55,20 +56,19 @@ type SolveStatus
 type Timing
     = NotStarted
     | Started Int
-    | Finished Int Int
+    | Finished Int
 
 
 type alias Model =
-    { message : String
+    { ciphertext : Array Char
     , translation : Dict Char Char
     , reverseTrans : Dict Char (List Char)
     , index : Int
-    , scrambledCharacters : Dict Char Char
-    , scrambledMessage : Array Char
     , letterFrequencies : Dict Char Int
     , attribution : String
     , solved : SolveStatus
     , timing : Timing
+    , sig : String
     }
 
 
@@ -77,31 +77,25 @@ letters =
     String.toList "abcdefghijklmnopqrstuvwxyz"
 
 
-scrambleCharacters : Random.Generator (List Char)
-scrambleCharacters =
-    Random.List.shuffle letters
-
-
 init : () -> ( Model, Effect Msg )
 init _ =
     let
         model =
-            { message = ""
-            , translation = Dict.empty
+            { translation = Dict.empty
             , reverseTrans = Dict.empty
             , index = 0
-            , scrambledCharacters = Dict.empty
-            , scrambledMessage = Array.empty
+            , ciphertext = Array.empty
             , letterFrequencies = Dict.empty
             , attribution = "Unknown"
             , solved = NotChecked
             , timing = NotStarted
+            , sig = ""
             }
     in
     ( model
     , Http.get
-        { url = "/api"
-        , expect = Http.expectJson GotMessage messageDecoder
+        { url = "/api/aristocrat/new"
+        , expect = Http.expectJson GotPuzzleInfo puzzleInfoDecoder
         }
         |> Effect.fromCmd
     )
@@ -111,75 +105,48 @@ init _ =
 -- UPDATE
 
 
-type alias Message =
-    { message : String, attribution : Maybe String }
+type alias PuzzleInfo =
+    { message : String
+    , sig : String
+    , timestamp : Int
+    , attribution : String
+    }
 
 
-messageDecoder : D.Decoder Message
-messageDecoder =
-    D.map2 Message (D.field "message" D.string) (D.field "attribution" (D.maybe D.string))
+puzzleInfoDecoder : D.Decoder PuzzleInfo
+puzzleInfoDecoder =
+    D.map4 PuzzleInfo
+        (D.field "message" D.string)
+        (D.field "sig" D.string)
+        (D.field "timestamp" D.int)
+        (D.field "attribution" D.string)
 
 
 type Msg
-    = GotMessage (Result Http.Error Message)
-    | GotStartTime Time.Posix
-    | GotEndTime Time.Posix
-    | GotScrambledCharacters (List Char)
+    = GotPuzzleInfo (Result Http.Error PuzzleInfo)
     | KeyPress String
     | Clicked Int
-    | Check
+    | SubmitSolution
+    | GotSubmitResponse (Result Http.Error Int)
     | TryAnother
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
-        GotStartTime time ->
-            ( { model | timing = Started (Time.posixToMillis time) }, Effect.none )
-
-        GotMessage (Ok message) ->
-            ( { model | message = message.message, attribution = Maybe.withDefault "Unknown" message.attribution }
-            , Random.generate GotScrambledCharacters scrambleCharacters |> Effect.fromCmd
-            )
-
-        GotMessage (Err _) ->
-            ( { model | message = "Something went wrong when fetching the message. But you can solve this instead" }
-            , Random.generate GotScrambledCharacters scrambleCharacters |> Effect.fromCmd
-            )
-
-        GotScrambledCharacters scrambled ->
-            let
-                characters =
-                    model.message
-                        |> String.toLower
-                        |> String.filter Char.isAlpha
-                        |> String.toList
-                        |> Set.fromList
-                        |> Set.toList
-
-                scrambledCharacters =
-                    List.map2 Tuple.pair characters scrambled |> Dict.fromList
-
-                scrambledMessage =
-                    String.map
-                        (\c ->
-                            if Char.isAlpha c then
-                                Maybe.withDefault '�' (Dict.get (Char.toLower c) scrambledCharacters)
-
-                            else
-                                c
-                        )
-                        model.message
-                        |> String.toList
-
-                letterFrequencies =
-                    Dict.frequencies scrambledMessage
-            in
+        GotPuzzleInfo (Ok puzzleInfo) ->
             ( { model
-                | scrambledCharacters = scrambledCharacters
-                , scrambledMessage = scrambledMessage |> Array.fromList
-                , letterFrequencies = letterFrequencies
+                | ciphertext = puzzleInfo.message |> String.toList |> Array.fromList
+                , attribution = puzzleInfo.attribution
+                , sig = puzzleInfo.sig
+                , timing = Started puzzleInfo.timestamp
+                , letterFrequencies = Dict.frequencies (puzzleInfo.message |> String.toList)
               }
+            , Effect.none
+            )
+
+        GotPuzzleInfo (Err _) ->
+            ( { model | ciphertext = "Something went wrong! Try connecting to wifi." |> String.toList |> Array.fromList }
             , Effect.none
             )
 
@@ -187,7 +154,7 @@ update msg model =
             let
                 shift : Int -> Int
                 shift num =
-                    case Array.get (model.index + num) model.scrambledMessage of
+                    case Array.get (model.index + num) model.ciphertext of
                         Just char ->
                             if Char.isAlpha char then
                                 num
@@ -201,7 +168,7 @@ update msg model =
                 -- Dict and shift happens at the same time. This function takes in the dict to go over already answered letters
                 shiftOverAnswered : Dict Char Char -> Int -> Int
                 shiftOverAnswered newTranslation num =
-                    case Array.get (model.index + num) model.scrambledMessage of
+                    case Array.get (model.index + num) model.ciphertext of
                         Just char ->
                             if Char.isAlpha char then
                                 Maybe.unwrap num
@@ -217,9 +184,10 @@ update msg model =
             if model.solved /= Solved then
                 case key of
                     "Enter" ->
-                        update Check model
+                        update SubmitSolution model
+
                     "Backspace" ->
-                        case Array.get model.index model.scrambledMessage of
+                        case Array.get model.index model.ciphertext of
                             Just char ->
                                 ( { model
                                     | index = model.index + shift 1
@@ -246,7 +214,7 @@ update msg model =
                                         Char.toLower pressedKey
                                 in
                                 if Char.isAlpha pressedKey then
-                                    case Array.get model.index model.scrambledMessage of
+                                    case Array.get model.index model.ciphertext of
                                         Just char ->
                                             let
                                                 maybeOldChar =
@@ -273,12 +241,7 @@ update msg model =
                                                             [ char ]
                                                 , solved = NotChecked
                                               }
-                                            , case model.timing of
-                                                NotStarted ->
-                                                    Task.perform GotStartTime Time.now |> Effect.fromCmd
-
-                                                _ ->
-                                                    Effect.none
+                                            , Effect.none
                                             )
 
                                         _ ->
@@ -296,32 +259,43 @@ update msg model =
         Clicked index ->
             ( { model | index = index }, Effect.none )
 
-        Check ->
-            let
-                solved =
-                    Dict.invert model.translation == model.scrambledCharacters
-            in
-            if model.solved /= Solved && solved then
-                ( { model | solved = Solved }
-                , Effect.batch
-                    [ Effect.confetti
-                    , Task.perform GotEndTime Time.now |> Effect.fromCmd
-                    ]
-                )
-
-            else if model.solved == Solved then
-                ( model, Effect.none )
-
-            else
-                ( { model | solved = Failure }, Effect.none )
-
-        GotEndTime time ->
+        SubmitSolution ->
             case model.timing of
-                Started startTime ->
-                    ( { model | timing = Finished startTime (Time.posixToMillis time - startTime) }, Effect.none )
+                Started timestamp ->
+                    ( model
+                    , Http.post
+                        { url = "/api/aristocrat/submit"
+                        , body =
+                            Http.jsonBody
+                                (E.object
+                                    [ ( "message"
+                                      , E.string
+                                            (Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault c) model.ciphertext
+                                                |> Array.toList
+                                                |> String.fromList
+                                            )
+                                      )
+                                    , ( "sig", E.string model.sig )
+                                    , ( "timestamp", E.int timestamp )
+                                    ]
+                                )
+                        , expect = Http.expectJson GotSubmitResponse D.int
+                        }
+                        |> Effect.fromCmd
+                    )
 
                 _ ->
                     ( model, Effect.none )
+
+        GotSubmitResponse (Ok timeTaken) ->
+            ( { model | solved = Solved, timing = Finished timeTaken }, Effect.confetti )
+
+        GotSubmitResponse (Err (Http.BadStatus 417)) ->
+            ( { model | solved = Failure }, Effect.none )
+
+        -- TODO handle rest of responses
+        GotSubmitResponse _ ->
+            ( model, Effect.none )
 
         TryAnother ->
             init ()
@@ -338,6 +312,7 @@ sign num =
     else
         0
 
+
 removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
 removeFromDictLists char =
     Dict.map
@@ -349,6 +324,8 @@ removeFromDictLists char =
                 v
         )
         >> Dict.filter (\_ v -> not (List.isEmpty v))
+
+
 
 -- SUBSCRIPTIONS
 
@@ -368,7 +345,7 @@ view : Model -> View Msg
 view model =
     let
         words =
-            model.scrambledMessage
+            model.ciphertext
                 |> Array.toIndexedList
                 |> List.foldr
                     (\( i, c ) acc ->
@@ -398,7 +375,7 @@ view model =
 
         modalBox =
             case model.timing of
-                Finished _ timeTaken ->
+                Finished timeTaken ->
                     div [ Attr.class "modal" ]
                         [ div [ Attr.class "modalContent" ]
                             [ h1 [] [ text "Congratulations!" ]
@@ -408,7 +385,7 @@ view model =
                                 , text " seconds!"
                                 ]
                             , div [ Attr.class "messageContainer" ]
-                                [ div [ Attr.class "message" ] [ text ("\"" ++ model.message ++ "\"") ]
+                                [ div [ Attr.class "message" ] [ text ("\"" ++ "you did it! this is placeholder until i figure out how to show the solved message here :)" ++ "\"") ]
                                 , div [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
                                 ]
                             , button [ Attr.class "button greenButton", Events.onClick TryAnother ] [ text "Try another" ]
@@ -422,7 +399,7 @@ view model =
     , body =
         [ div [ Attr.class "aristocrat-content" ]
             [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
-                (if Array.isEmpty model.scrambledMessage then
+                (if Array.isEmpty model.ciphertext then
                     [ text "Loading..." ]
 
                  else
@@ -446,7 +423,7 @@ view model =
                         , ( "greenButton", True )
                         , ( "shake", model.solved == Failure )
                         ]
-                    , Events.onClick Check
+                    , Events.onClick SubmitSolution
                     ]
                     [ text "Check" ]
                 ]
@@ -482,7 +459,7 @@ viewCharacter model index char =
             model.index == index
 
         softSelected =
-            not selected && Just char == Array.get model.index model.scrambledMessage
+            not selected && Just char == Array.get model.index model.ciphertext
 
         collision =
             case Dict.get char model.translation of

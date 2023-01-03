@@ -1,11 +1,11 @@
 #![feature(array_zip)]
 pub mod api;
-pub mod client;
 pub mod error;
 pub mod models;
 pub mod schema;
 
 use axum::{routing::get, Router};
+use axum_extra::routing::SpaRouter;
 use deadpool::managed::Pool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 
@@ -21,6 +21,6 @@ pub fn establish_connection(db_url: &str) -> DbPool {
 
 pub fn app() -> Router {
     Router::new()
-        .nest_service("/", get(client::file_handler))
         .nest("/api", api::app())
+        .merge(SpaRouter::new("/assets", "client/dist/assets").index_file("../index.html"))
 }

@@ -10,7 +10,7 @@ layout { page } =
     { title = page.title
     , body =
         [ nav [ Attr.class "navbar" ]
-            [ a [ Attr.class "logo", Attr.href "/" ] [ text "cryptow/eve" ]
+            [ a [ Attr.class "logo", Attr.href "/" ] [ text "uncrypt" ]
             , div [ Attr.class "location" ] [ text page.title ]
             , a [ Attr.class "options", Attr.href "/settings" ] [ text "Settings" ]
             ]
