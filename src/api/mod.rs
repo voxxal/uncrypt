@@ -1,8 +1,12 @@
 use axum::Router;
 
-pub mod message;
+use crate::AppState;
 
-pub fn app() -> Router {
+pub mod auth;
+pub mod aristocrat;
+
+pub fn app() -> Router<AppState> {
     Router::new()
-        .nest("/aristocrat", message::app())
+        .nest("/aristocrat", aristocrat::app())
+        .nest("/auth", auth::app())
 }

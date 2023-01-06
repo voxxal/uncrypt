@@ -7,14 +7,18 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.68"
-axum = { version = "0.6.1", features = ["macros"] }
+argon2 = "0.4.1"
+axum = { version = "0.6.1", features = ["macros", "headers"] }
 axum-extra = { version = "0.4.2", features = ["spa"] }
 base64 = "0.20.0"
 deadpool = "0.9.5"
 diesel = { version = "2.0.2", features = ["postgres"] }
 diesel-async = { version = "0.1.1", features = ["deadpool", "postgres"] }
 dotenvy = "0.15.6"
+jsonwebtoken = "8.2.0"
 lazy_static = "1.4.0"
+nanoid = "0.4.0"
+password-hash = "0.4.2"
 rand = "0.8.5"
 ring = "0.16.20"
 serde = { version = "1.0.152", features = ["derive"] }

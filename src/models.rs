@@ -7,3 +7,11 @@ pub struct Message {
     pub patristocrat_hint: Option<String>,
     pub published: Option<String>,
 }
+
+#[derive(Queryable)]
+pub struct User {
+    pub id: String,
+    pub username: String,
+    pub password_hash: String,
+    pub solved: i32,
+}

@@ -4,6 +4,7 @@ use std::{
 };
 
 use axum::{
+    extract::State,
     http::StatusCode,
     routing::{get, post},
     Extension, Json, Router,
@@ -17,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{AppError, AppResult},
-    DbPool,
+    AppState,
 };
 use anyhow::anyhow;
 
@@ -52,12 +53,9 @@ fn random_sub_alphabet() -> SubAlphabet {
     ALPHABET.zip(shuffled).into_iter().collect()
 }
 
-async fn get_aristocrat(
-    Extension(pool): Extension<DbPool>,
-    Extension(hmac_key): Extension<hmac::Key>,
-) -> AppResult<Json<AristocratResponse>> {
+async fn get_aristocrat(State(state): State<AppState>) -> AppResult<Json<AristocratResponse>> {
     use crate::schema::messages::dsl::*;
-    let conn = &mut pool.get().await?;
+    let conn = &mut state.db_pool.get().await?;
 
     let msg_info = messages
         .select((message, attribution))
@@ -78,9 +76,8 @@ async fn get_aristocrat(
 
     let timestamp = get_timestamp();
 
-    // The timestamp is always 16 bytes, so we can split there to get the timestamp
     let tag = hmac::sign(
-        &hmac_key,
+        &state.hmac_key,
         &[
             timestamp.to_le_bytes().to_vec(),
             msg_info.0.to_lowercase().as_bytes().to_vec(),
@@ -104,11 +101,11 @@ struct AristocratSolutionSubmitRequest {
 }
 
 async fn post_aristocrat(
-    Extension(hmac_key): Extension<hmac::Key>,
+    State(state): State<AppState>,
     Json(req): Json<AristocratSolutionSubmitRequest>,
 ) -> AppResult<Json<u128>> {
     if let Ok(()) = hmac::verify(
-        &hmac_key,
+        &state.hmac_key,
         &[
             req.timestamp.to_le_bytes().to_vec(),
             req.message.to_lowercase().as_bytes().to_vec(),
@@ -125,7 +122,7 @@ async fn post_aristocrat(
     ))
 }
 
-pub fn app() -> Router {
+pub fn app() -> Router<AppState> {
     Router::new()
         .route("/new", get(get_aristocrat))
         .route("/submit", post(post_aristocrat))

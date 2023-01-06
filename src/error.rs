@@ -15,6 +15,12 @@ impl ResponseStatusError {
     }
 }
 
+impl<S: Into<Cow<'static, str>>> From<(StatusCode, S)> for ResponseStatusError {
+    fn from((code, s): (StatusCode, S)) -> Self {
+        Self::from(code, s)
+    }
+}
+
 impl IntoResponse for ResponseStatusError {
     fn into_response(self) -> Response {
         #[derive(Serialize)]
@@ -31,12 +37,6 @@ impl IntoResponse for ResponseStatusError {
             }),
         )
             .into_response()
-    }
-}
-
-impl<S: Into<Cow<'static, str>>> From<(StatusCode, S)> for ResponseStatusError {
-    fn from((code, s): (StatusCode, S)) -> Self {
-        Self::from(code, s)
     }
 }
 

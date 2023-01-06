@@ -1,9 +1,8 @@
 # TODO
-- Hints (?) probably would be useful
 - ~~model that pops up with info on how you did~~
-- server side shuffling
-- settings page
-- dark theme (ASAP !!! MAH EYES R BURNIN OUT)
+- ~~server side shuffling~~
+- ~~settings page~~
+- ~~dark theme (ASAP !!! MAH EYES R BURNIN OUT)~~
 - homepage
 - caesar cipher
 - atbash cipher
