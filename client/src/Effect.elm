@@ -1,15 +1,17 @@
 port module Effect exposing
-    ( Effect, none, batch
-    , fromCmd, fromSharedMsg
+    ( Effect
+    , none, batch
+    , sendCmd, sendMsg, sendSharedMsg
     , pushRoute, replaceRoute, loadExternalUrl
     , map, toCmd
-    , confetti, save
+    , save, confetti
     )
 
 {-|
 
-@docs Effect, none, batch
-@docs fromCmd
+@docs Effect
+@docs none, batch
+@docs sendCmd, sendMsg
 @docs pushRoute, replaceRoute, loadExternalUrl
 
 @docs map, toCmd
@@ -22,43 +24,72 @@ import Json.Encode as E
 import Route exposing (Route)
 import Route.Path
 import Route.Query
+import Shared.Model
 import Shared.Msg
 import Task
 import Url exposing (Url)
 
 
 type Effect msg
-    = None
+    = -- BASICS
+      None
     | Batch (List (Effect msg))
-    | Cmd (Cmd msg)
-    | Shared Shared.Msg.Msg
+    | SendCmd (Cmd msg)
+      -- ROUTING
     | PushUrl String
     | ReplaceUrl String
     | LoadExternalUrl String
+      -- SHARED
+    | SendSharedMsg Shared.Msg.Msg
+      -- CUSTOM
     | SaveToLocalStorage { key : String, value : E.Value }
     | Confetti
 
 
+
+-- BASICS
+
+
+{-| Don't send any effect.
+-}
 none : Effect msg
 none =
     None
 
 
+{-| Send multiple effects at once.
+-}
 batch : List (Effect msg) -> Effect msg
 batch =
     Batch
 
 
-fromCmd : Cmd msg -> Effect msg
-fromCmd =
-    Cmd
+{-| Send a normal `Cmd msg` as an effect, something like `Http.get` or `Random.generate`.
+-}
+sendCmd : Cmd msg -> Effect msg
+sendCmd =
+    SendCmd
 
 
-fromSharedMsg : Shared.Msg.Msg -> Effect msg
-fromSharedMsg =
-    Shared
+{-| Send a message as an effect. Useful when emitting events from UI components.
+-}
+sendMsg : msg -> Effect msg
+sendMsg msg =
+    Task.succeed msg
+        |> Task.perform identity
+        |> SendCmd
 
 
+sendSharedMsg : Shared.Msg.Msg -> Effect msg
+sendSharedMsg =
+    SendSharedMsg
+
+
+-- ROUTING
+
+
+{-| Set the new route, and make the back button go back to the current route.
+-}
 pushRoute :
     { path : Route.Path.Path
     , query : Dict String String
@@ -69,6 +100,9 @@ pushRoute route =
     PushUrl (Route.toString route)
 
 
+{-| Set the new route, but replace the previous one, so clicking the back
+button **won't** go back to the previous route.
+-}
 replaceRoute :
     { path : Route.Path.Path
     , query : Dict String String
@@ -79,6 +113,8 @@ replaceRoute route =
     ReplaceUrl (Route.toString route)
 
 
+{-| Redirect users to a new URL, somewhere external your web application.
+-}
 loadExternalUrl : String -> Effect msg
 loadExternalUrl =
     LoadExternalUrl
@@ -109,9 +145,12 @@ confetti =
 
 
 
--- TRANSFORMING EFFECTS
+-- INTERNALS
 
 
+{-| Elm Land depends on this function to connect pages and layouts
+together into the overall app.
+-}
 map : (msg1 -> msg2) -> Effect msg1 -> Effect msg2
 map fn effect =
     case effect of
@@ -121,11 +160,8 @@ map fn effect =
         Batch list ->
             Batch (List.map (map fn) list)
 
-        Cmd cmd ->
-            Cmd (Cmd.map fn cmd)
-
-        Shared msg ->
-            Shared msg
+        SendCmd cmd ->
+            SendCmd (Cmd.map fn cmd)
 
         PushUrl url ->
             PushUrl url
@@ -136,6 +172,9 @@ map fn effect =
         LoadExternalUrl url ->
             LoadExternalUrl url
 
+        SendSharedMsg sharedMsg ->
+            SendSharedMsg sharedMsg
+
         SaveToLocalStorage options ->
             SaveToLocalStorage options
 
@@ -143,29 +182,28 @@ map fn effect =
             Confetti
 
 
-{-| ( Used by Elm Land internally )
+{-| Elm Land depends on this function to perform your effects.
 -}
 toCmd :
     { key : Browser.Navigation.Key
-    , fromSharedMsg : Shared.Msg.Msg -> mainMsg
-    , fromPageMsg : msg -> mainMsg
+    , url : Url
+    , shared : Shared.Model.Model
+    , fromSharedMsg : Shared.Msg.Msg -> msg
+    , fromCmd : Cmd msg -> msg
+    , toCmd : msg -> Cmd msg
     }
     -> Effect msg
-    -> Cmd mainMsg
+    -> Cmd msg
 toCmd options effect =
     case effect of
         None ->
             Cmd.none
 
-        Cmd cmd ->
-            Cmd.map options.fromPageMsg cmd
-
-        Shared msg ->
-            Task.succeed msg
-                |> Task.perform options.fromSharedMsg
-
         Batch list ->
             Cmd.batch (List.map (toCmd options) list)
+
+        SendCmd cmd ->
+            cmd
 
         PushUrl url ->
             Browser.Navigation.pushUrl options.key url
@@ -175,6 +213,10 @@ toCmd options effect =
 
         LoadExternalUrl url ->
             Browser.Navigation.load url
+
+        SendSharedMsg sharedMsg ->
+            Task.succeed sharedMsg
+                |> Task.perform options.fromSharedMsg
 
         SaveToLocalStorage keyValueRecord ->
             saveToLocalStorage keyValueRecord

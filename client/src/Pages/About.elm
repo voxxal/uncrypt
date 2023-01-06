@@ -4,13 +4,7 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Layout exposing (Layout)
 import View exposing (View)
-
-
-layout : Layout
-layout =
-    Layout.Navbar
-
-
+-- Layout not avaliable?
 page : View msg
 page =
     { title = "About"

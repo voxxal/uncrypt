@@ -5,17 +5,14 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
 import Layout exposing (Layout)
+import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
+import Settings
+import Settings.Theme
 import Shared
 import Shared.Msg
-import Shared.Settings
 import View exposing (View)
-
-
-layout : Layout
-layout =
-    Layout.Navbar
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -26,6 +23,7 @@ page shared route =
         , subscriptions = subscriptions
         , view = view shared
         }
+        |> Page.withLayout (\_ -> Layouts.Navbar { navbar = {} })
 
 
 
@@ -48,7 +46,7 @@ init () =
 
 
 type Msg
-    = ChangeSetting Shared.Settings.Setting
+    = ChangeSetting Settings.Setting
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -56,7 +54,7 @@ update msg model =
     case msg of
         ChangeSetting setting ->
             ( model
-            , Effect.fromSharedMsg (Shared.Msg.ChangeSetting setting)
+            , Effect.sendSharedMsg (Shared.Msg.ChangeSetting setting)
             )
 
 
@@ -77,7 +75,7 @@ view : Shared.Model -> Model -> View Msg
 view shared model =
     let
         currentThemeString =
-            Shared.Settings.themeToString shared.settings.theme
+            Settings.Theme.toString shared.settings.theme
 
         selected value =
             Attr.selected (currentThemeString == value)
@@ -90,8 +88,8 @@ view shared model =
                 [ Attr.name "theme"
                 , Attr.id "theme"
                 , Events.onInput
-                    (Shared.Settings.themeFromString
-                        >> Shared.Settings.Theme
+                    (Settings.Theme.fromString
+                        >> Settings.Theme
                         >> ChangeSetting
                     )
                 ]

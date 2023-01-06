@@ -3,17 +3,13 @@ module Pages.Home_ exposing (Model, Msg, page)
 import Dict
 import Effect exposing (Effect)
 import Html
-import Layout exposing (Layout)
 import Page exposing (Page)
 import Route exposing (Route)
 import Route.Path
 import Shared
 import View exposing (View)
+import Layouts
 
-
-layout : Layout
-layout =
-    Layout.Navbar
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -23,7 +19,7 @@ page shared route =
         , update = update
         , subscriptions = subscriptions
         , view = view
-        }
+        } |> Page.withLayout (\_ -> Layouts.Navbar { navbar = {} })
 
 
 

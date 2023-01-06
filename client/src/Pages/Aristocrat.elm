@@ -11,26 +11,12 @@ import Html.Events as Events
 import Http
 import Json.Decode as D
 import Json.Encode as E
-import Layout exposing (Layout)
+import Layouts
 import Maybe.Extra as Maybe
 import Page exposing (Page)
-import Random
-import Random.List
 import Route exposing (Route)
-import Set
 import Shared
-import Task
-import Time
 import View exposing (View)
-
-
-
--- TODO letter is a better word than character.
-
-
-layout : Layout
-layout =
-    Layout.Navbar
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -41,6 +27,7 @@ page shared route =
         , subscriptions = subscriptions
         , view = view
         }
+        |> Page.withLayout (\_ -> Layouts.Navbar { navbar = {} })
 
 
 
@@ -97,7 +84,7 @@ init _ =
         { url = "/api/aristocrat/new"
         , expect = Http.expectJson GotPuzzleInfo puzzleInfoDecoder
         }
-        |> Effect.fromCmd
+        |> Effect.sendCmd
     )
 
 
@@ -281,7 +268,7 @@ update msg model =
                                 )
                         , expect = Http.expectJson GotSubmitResponse D.int
                         }
-                        |> Effect.fromCmd
+                        |> Effect.sendCmd
                     )
 
                 _ ->
@@ -388,7 +375,7 @@ view model =
                                 [ div [ Attr.class "message" ] [ text ("\"" ++ "you did it! this is placeholder until i figure out how to show the solved message here :)" ++ "\"") ]
                                 , div [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
                                 ]
-                            , button [ Attr.class "button greenButton", Events.onClick TryAnother ] [ text "Try another" ]
+                            , button [ Attr.class "button", Events.onClick TryAnother ] [ text "Try another" ]
                             ]
                         ]
 
@@ -420,7 +407,7 @@ view model =
                 , button
                     [ Attr.classList
                         [ ( "button", True )
-                        , ( "greenButton", True )
+                        , ( "submitButton", True )
                         , ( "shake", model.solved == Failure )
                         ]
                     , Events.onClick SubmitSolution

@@ -1,5 +1,5 @@
 module Shared.Msg exposing (Msg (..))
 
-import Shared.Settings
+import Settings
 
-type Msg = ChangeSetting Shared.Settings.Setting
+type Msg = ChangeSetting Settings.Setting

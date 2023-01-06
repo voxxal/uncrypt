@@ -16,8 +16,10 @@ import Effect exposing (Effect)
 import Json.Decode as D
 import Route exposing (Route)
 import Route.Path
+import Settings
+import Settings.Theme
 import Shared.Msg exposing (Msg(..))
-import Shared.Settings as Settings
+import Shared.Model
 
 
 
@@ -38,9 +40,7 @@ decoder =
 -- INIT
 
 
-type alias Model =
-    { settings : Settings.Settings
-    }
+type alias Model = Shared.Model.Model
 
 
 init : Result D.Error Flags -> Route () -> ( Model, Effect Msg )
@@ -52,13 +52,13 @@ init flagsResult route =
                 |> Result.withDefault { settings = Nothing }
 
         defaultSettings =
-            { theme = Settings.ThemeAuto }
+            { theme = Settings.Theme.Auto }
 
         settings =
             Maybe.withDefault defaultSettings flags.settings
     in
     ( { settings = settings }
-    , Effect.fromCmd (Settings.updateTheme (Settings.themeEncoder settings.theme))
+    , Effect.sendCmd (Settings.Theme.updateTheme (Settings.Theme.encoder settings.theme))
     )
 
 
@@ -86,7 +86,7 @@ update route msg model =
                 sideEffect =
                     case setting of
                         Settings.Theme _ ->
-                            Effect.fromCmd (Settings.updateTheme (Settings.themeEncoder newSettings.theme))
+                            Effect.sendCmd (Settings.Theme.updateTheme (Settings.Theme.encoder newSettings.theme))
             in
             ( { model | settings = newSettings }
             , Effect.batch [ sideEffect, Effect.save "settings" (Settings.settingsEncoder newSettings) ]
