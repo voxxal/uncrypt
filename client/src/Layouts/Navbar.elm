@@ -4,6 +4,7 @@ import Components.Icon exposing (icon)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes as Attr
+import Html.Events as Events
 import Layout exposing (Layout)
 import Route exposing (Route)
 import Shared
@@ -44,16 +45,14 @@ init _ =
 
 
 type Msg
-    = ReplaceMe
+    = Placeholder
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
 update msg model =
     case msg of
-        ReplaceMe ->
-            ( model
-            , Effect.none
-            )
+        _ ->
+            ( model, Effect.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -75,7 +74,9 @@ view { fromMsg, model, content } =
             , div [ Attr.class "right" ]
                 [ div [ Attr.class "buttons" ]
                     [ a [ Attr.class "options", Attr.href "/settings" ] [ icon "fa-solid fa-gear" ]
-                    , a [ Attr.class "button login" ] [ icon "fa-solid fa-user fa-sm", text "Login" ]
+                    , a
+                        [ Attr.class "button login", Attr.href "/login" ]
+                        [ text "Login" ]
                     ]
                 ]
             ]

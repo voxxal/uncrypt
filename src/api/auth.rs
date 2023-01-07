@@ -17,13 +17,13 @@ use crate::{
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct UserAuthorizedResponse {
-    jwt: String,
+    token: String,
 }
 
 impl UserAuthorizedResponse {
     fn from_user(user: &User) -> anyhow::Result<Self> {
         Ok(Self {
-            jwt: auth::generate_jwt(user, Duration::from_secs(24 * 60 * 60))?,
+            token: auth::generate_jwt(user, Duration::from_secs(24 * 60 * 60))?,
         })
     }
 }
@@ -32,6 +32,7 @@ impl UserAuthorizedResponse {
 struct AuthRequest {
     pub username: String,
     pub password: String,
+    // register and login diverge, as register can take an email
 }
 
 async fn register(
@@ -82,14 +83,14 @@ async fn login(
 ) -> AppResult<Json<UserAuthorizedResponse>> {
     let conn = &mut state.db_pool.get().await?;
 
-    if let Some(club) = users::table
+    if let Some(user) = users::table
         .filter(users::username.eq(req.username))
         .first::<User>(conn)
         .await
         .optional()?
     {
-        if auth::verify_password(req.password, &club.password_hash).unwrap() {
-            return Ok(Json(UserAuthorizedResponse::from_user(&club)?));
+        if auth::verify_password(req.password, &user.password_hash).unwrap() {
+            return Ok(Json(UserAuthorizedResponse::from_user(&user)?));
         }
     }
 

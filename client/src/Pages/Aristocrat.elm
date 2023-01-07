@@ -360,7 +360,46 @@ view model =
                 )
                 letters
 
-        modalBox =
+    in
+    { title = "Aristocrat"
+    , body =
+        [ div [ Attr.class "aristocrat-content" ]
+            [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
+                (if Array.isEmpty model.ciphertext then
+                    [ text "Loading..." ]
+
+                 else
+                    [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
+                    , div [] (List.map (\( i, word ) -> viewWord model i word) words)
+                    , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
+                    ]
+                )
+            , div [ Attr.class "controls" ]
+                [ h2 [ Attr.class "label" ] [ text "REMAINING LETTERS" ]
+                , div [ Attr.class "remainingLetters" ]
+                    (List.map
+                        (\c ->
+                            span [ Attr.class "remainingLetter" ] [ text c ]
+                        )
+                        remainingCharacters
+                    )
+                , button
+                    [ Attr.classList
+                        [ ( "button", True )
+                        , ( "submitButton", True )
+                        , ( "shake", model.solved == Failure )
+                        ]
+                    , Events.onClick SubmitSolution
+                    ]
+                    [ text "Check" ]
+                ]
+            ]
+        , viewModalBox model
+        ]
+    }
+
+viewModalBox : Model -> Html Msg
+viewModalBox model =
             case model.timing of
                 Finished timeTaken ->
                     div [ Attr.class "modal" ]
@@ -381,43 +420,6 @@ view model =
 
                 _ ->
                     text ""
-    in
-    { title = "Aristocrat"
-    , body =
-        [ div [ Attr.class "aristocrat-content" ]
-            [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
-                (if Array.isEmpty model.ciphertext then
-                    [ text "Loading..." ]
-
-                 else
-                    [ h2 [ Attr.class "heading" ] [ text "PUZZLE" ]
-                    , div [] (List.map (\( i, word ) -> viewWord model i word) words)
-                    , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
-                    ]
-                )
-            , div [ Attr.class "controls" ]
-                [ h2 [ Attr.class "heading" ] [ text "REMAINING LETTERS" ]
-                , div [ Attr.class "remainingLetters" ]
-                    (List.map
-                        (\c ->
-                            span [ Attr.class "remainingLetter" ] [ text c ]
-                        )
-                        remainingCharacters
-                    )
-                , button
-                    [ Attr.classList
-                        [ ( "button", True )
-                        , ( "submitButton", True )
-                        , ( "shake", model.solved == Failure )
-                        ]
-                    , Events.onClick SubmitSolution
-                    ]
-                    [ text "Check" ]
-                ]
-            ]
-        , modalBox
-        ]
-    }
 
 
 viewWord : Model -> Int -> String -> Html Msg

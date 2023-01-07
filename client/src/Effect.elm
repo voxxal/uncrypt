@@ -5,6 +5,7 @@ port module Effect exposing
     , pushRoute, replaceRoute, loadExternalUrl
     , map, toCmd
     , save, confetti
+    , login
     )
 
 {-|
@@ -80,6 +81,7 @@ sendMsg msg =
         |> SendCmd
 
 
+-- TODO best practice to not expose and instead create new functions to run what you need to do
 sendSharedMsg : Shared.Msg.Msg -> Effect msg
 sendSharedMsg =
     SendSharedMsg
@@ -143,7 +145,10 @@ confetti : Effect msg
 confetti =
     Confetti
 
-
+-- AUTH
+login : String -> Effect msg
+login token =
+    SendSharedMsg (Shared.Msg.Login token)
 
 -- INTERNALS
 

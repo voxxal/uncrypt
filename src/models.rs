@@ -12,6 +12,7 @@ pub struct Message {
 pub struct User {
     pub id: String,
     pub username: String,
+    pub email: Option<String>,
     pub password_hash: String,
     pub solved: i32,
 }

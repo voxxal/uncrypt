@@ -11,7 +11,7 @@ page =
     , body =
         [ div [ Attr.class "text-content" ]
             [ p []
-                [ text "snuish was made by "
+                [ text "uncrypt was made by "
                 , strong [] [ a [ Attr.href "https://voxal.dev" ] [ text "voxal" ] ]
                 , text ". Special thanks to "
                 , strong [] [ text "ryuusaka" ]

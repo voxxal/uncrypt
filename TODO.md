@@ -9,3 +9,4 @@
 - affine cipher
 - vigenère cipher
 - accounts
+- maybe switch to elm ui? css is driving me mad

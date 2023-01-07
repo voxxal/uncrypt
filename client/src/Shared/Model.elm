@@ -4,4 +4,5 @@ import Settings
 
 type alias Model =
     { settings : Settings.Settings
+    , token : Maybe String
     }

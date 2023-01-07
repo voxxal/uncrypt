@@ -1,5 +1,8 @@
-module Shared.Msg exposing (Msg (..))
+module Shared.Msg exposing (Msg(..))
 
 import Settings
 
-type Msg = ChangeSetting Settings.Setting
+
+type Msg
+    = ChangeSetting Settings.Setting
+    | Login String
