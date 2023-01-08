@@ -3,6 +3,7 @@ import confetti from "https://cdn.skypack.dev/canvas-confetti";
 export const flags = ({ env }) => {
   return {
     settings: JSON.parse(localStorage.settings || null),
+    token: JSON.parse(localStorage.token || null),
   };
 };
 

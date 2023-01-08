@@ -20,7 +20,7 @@ layout settings shared route =
     Layout.new
         { init = init
         , update = update
-        , view = view
+        , view = view shared
         , subscriptions = subscriptions
         }
 
@@ -64,8 +64,8 @@ subscriptions model =
 -- VIEW
 
 
-view : { fromMsg : Msg -> mainMsg, content : View mainMsg, model : Model } -> View mainMsg
-view { fromMsg, model, content } =
+view : Shared.Model -> { fromMsg : Msg -> mainMsg, content : View mainMsg, model : Model } -> View mainMsg
+view shared { fromMsg, model, content } =
     { title = "uncrypt | " ++ content.title
     , body =
         [ nav [ Attr.class "navbar" ]
@@ -74,9 +74,7 @@ view { fromMsg, model, content } =
             , div [ Attr.class "right" ]
                 [ div [ Attr.class "buttons" ]
                     [ a [ Attr.class "options", Attr.href "/settings" ] [ icon "fa-solid fa-gear" ]
-                    , a
-                        [ Attr.class "button login", Attr.href "/login" ]
-                        [ text "Login" ]
+                    , viewProfileSummary shared
                     ]
                 ]
             ]
@@ -85,25 +83,16 @@ view { fromMsg, model, content } =
     }
 
 
+viewProfileSummary : Shared.Model -> Html msg
+viewProfileSummary shared =
+    case shared.user of
+        Nothing ->
+            a
+                [ Attr.class "button login", Attr.href "/login" ]
+                [ text "Login" ]
 
-{-
-   module Layouts.Navbar exposing (layout)
-
-   import Html exposing (..)
-   import Html.Attributes as Attr
-   import View exposing (View)
-
-
-   layout : { page : View msg } -> View msg
-   layout { page } =
-       { title = page.title
-       , body =
-           [ nav [ Attr.class "navbar" ]
-               [ a [ Attr.class "logo", Attr.href "/" ] [ text "uncrypt" ]
-               , div [ Attr.class "location" ] [ text page.title ]
-               , a [ Attr.class "options", Attr.href "/settings" ] [ text "Settings" ]
-               ]
-           , div [ Attr.class "page" ] page.body
-           ]
-       }
--}
+        Just user ->
+            div [ Attr.class "profile" ]
+                [ span [ Attr.class "level" ] [ text (String.fromInt user.level) ]
+                , span [] [ text user.username ]
+                ]

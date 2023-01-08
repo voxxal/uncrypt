@@ -1,13 +1,12 @@
 module Pages.Login exposing (Model, Msg, page)
 
+import Api.Auth exposing (AuthorizedResponse)
+import Api.Http
 import Components.Input exposing (passwordInput, textInput)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
-import Http
-import Json.Decode as D
-import Json.Encode as E
 import Layouts
 import Page exposing (Page)
 import Route exposing (Route)
@@ -34,7 +33,7 @@ type alias Model =
     { username : String
     , password : String
     , isSubmitting : Bool
-    , badLogin : Bool
+    , badLogin : String
     }
 
 
@@ -43,7 +42,7 @@ init () =
     ( { username = ""
       , password = ""
       , isSubmitting = False
-      , badLogin = False
+      , badLogin = ""
       }
     , Effect.none
     )
@@ -53,16 +52,12 @@ init () =
 -- UPDATE
 
 
-type alias AuthorizedResponse =
-    { token : String }
-
-
 type Msg
     = ExampleMsgReplaceMe
     | UpdateUsername String
     | UpdatePassword String
     | Submit
-    | GotResponse (Result Http.Error AuthorizedResponse)
+    | GotResponse (Result Api.Http.Error AuthorizedResponse)
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -81,18 +76,7 @@ update msg model =
 
         Submit ->
             ( { model | isSubmitting = True }
-            , Http.post
-                { url = "/api/auth/login"
-                , body =
-                    Http.jsonBody
-                        (E.object
-                            [ ( "username", E.string model.username )
-                            , ( "password", E.string model.password )
-                            ]
-                        )
-                , expect = Http.expectJson GotResponse (D.map AuthorizedResponse (D.field "token" D.string))
-                }
-                |> Effect.sendCmd
+            , Api.Auth.login { username = model.username, password = model.password } GotResponse
             )
 
         GotResponse (Ok { token }) ->
@@ -100,11 +84,11 @@ update msg model =
             , Effect.login token
             )
 
-        GotResponse (Err (Http.BadStatus 401)) ->
-            ( { model | isSubmitting = False, badLogin = True }, Effect.none )
+        GotResponse (Err (Api.Http.BadStatus { message })) ->
+            ( { model | isSubmitting = False, badLogin = message }, Effect.none )
 
-        GotResponse _ ->
-            ( { model | isSubmitting = False }, Effect.none )
+        GotResponse (Err _) ->
+            ( { model | isSubmitting = False, badLogin = "Something went wrong..." }, Effect.none )
 
 
 
@@ -150,6 +134,7 @@ view model =
                   else
                     text "Login"
                 ]
+            , p [ Attr.class "errorText" ] [ text model.badLogin ]
             ]
         ]
     }

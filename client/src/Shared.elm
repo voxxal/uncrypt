@@ -12,6 +12,7 @@ module Shared exposing
 
 -}
 
+import Api.Auth
 import Dict
 import Effect exposing (Effect)
 import Json.Decode as D
@@ -63,8 +64,11 @@ init flagsResult route =
         settings =
             Maybe.withDefault defaultSettings flags.settings
     in
-    ( { settings = settings, token = flags.token }
-    , Effect.sendCmd (Settings.Theme.updateTheme (Settings.Theme.encoder settings.theme))
+    ( { settings = settings, token = flags.token, user = Nothing }
+    , Effect.batch
+        [ Effect.sendCmd (Settings.Theme.updateTheme (Settings.Theme.encoder settings.theme))
+        , Maybe.withDefault Effect.none (Maybe.map2 Api.Auth.profile flags.token (Just GotProfile))
+        ]
     )
 
 
@@ -110,8 +114,15 @@ update route msg model =
                     , hash = Nothing
                     }
                 , Effect.save "token" (E.string token)
+                , Api.Auth.profile token GotProfile
                 ]
             )
+
+        GotProfile (Ok profile) ->
+            ( { model | user = Just profile }, Effect.none )
+
+        GotProfile (Err _) ->
+            ( { model | token = Nothing }, Effect.none )
 
 
 

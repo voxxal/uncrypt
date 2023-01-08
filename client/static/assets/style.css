@@ -1,8 +1,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap");
 
 :root {
-  --green: rgb(85, 161, 41);
+  --green: rgb(84, 161, 40);
   --blue: rgb(89, 105, 240);
+  --orange: rgb(245, 105, 49);
+  --dark-orange: rgb(168, 78, 42);
   --bg-light: rgb(255, 255, 255);
   --bg-dark: rgb(23, 28, 34);
   --text-light: rgb(49, 63, 78);
@@ -121,6 +123,33 @@ body.dark .options:hover {
   background-color: var(--blue);
 }
 
+.profile {
+  transition: 200ms background-color;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.profile:hover {
+  background-color: var(--text-dark);
+}
+
+body.dark .profile:hover {
+  background-color: var(--text-light);
+}
+
+.level {
+  background-color: var(--text-light);
+  color: var(--text-dark);
+  border-radius: 0.25rem;
+  margin-right: 0.35rem;
+  padding: 0 0.25rem;
+}
+
+body.dark .level {
+  background-color: var(--text-dark);
+  color: var(--text-light);
+}
+
 .label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -135,20 +164,6 @@ body.dark .options:hover {
   margin-top: 0;
   margin-bottom: 0.15rem;
   display: block;
-}
-
-.textInput {
-  background-color: var(--text-dark);
-  color: var(--text-light);
-  border: none;
-  border-radius: 0.25rem;
-  padding: 0.25rem;
-  font-size: 1rem;
-}
-
-body.dark .textInput {
-  background-color: var(--text-light);
-  color: var(--text-dark);
 }
 
 /* ARISTOCRAT */
@@ -249,11 +264,16 @@ body.dark .selected {
 }
 
 .collision {
-  color: red;
-  border: 1px solid red !important;
-  outline: 1px solid red
+  color: var(--dark-orange);
+  border: 1px solid var(--dark-orange) !important;
+  outline: 1px solid var(--dark-orange);
 }
-/* reds are quite harsh, i need to create a dark theme variant here */
+
+body.dark .collision {
+  color: var(--orange);
+  border: 1px solid var(--orange) !important;
+  outline: 1px solid var(--orange);
+}
 
 @keyframes horizontal-shaking {
   0% {
@@ -383,4 +403,26 @@ body.dark .text-content a {
 
 .auth-content {
   margin-top: 3rem;
+}
+
+.textInput {
+  background-color: var(--text-dark);
+  color: var(--text-light);
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  font-size: 1rem;
+}
+
+body.dark .textInput {
+  background-color: var(--text-light);
+  color: var(--text-dark);
+}
+
+.errorText {
+  color: var(--dark-orange);
+}
+
+body.dark .errorText {
+  color: var(--orange);
 }
