@@ -32,8 +32,9 @@ const ALPHABET: [char; 26] = [
 sql_function!(fn random() -> Text);
 
 #[derive(Serialize)]
-struct AristocratResponse {
-    message: String,
+struct NewResponse {
+    id: i32,
+    ciphertext: String, // TODO return as an array instead
     sig: String,
     timestamp: u128,
     attribution: String,
@@ -53,23 +54,25 @@ fn random_sub_alphabet() -> SubAlphabet {
     ALPHABET.zip(shuffled).into_iter().collect()
 }
 
-async fn get_aristocrat(State(state): State<AppState>) -> AppResult<Json<AristocratResponse>> {
+async fn new(State(state): State<AppState>) -> AppResult<Json<NewResponse>> {
     use crate::schema::messages::dsl::*;
     let conn = &mut state.db_pool.get().await?;
 
     let msg_info = messages
-        .select((message, attribution))
+        .select((id, message, attribution))
         .order(random())
-        .limit(1)
-        .load::<(String, Option<String>)>(conn)
-        .await?
-        .pop()
-        .ok_or_else(|| anyhow!("expect at least one message"))?;
+        .first::<(i32, String, Option<String>)>(conn)
+        .await
+        .optional()?;
+
+    let Some(msg_info) = msg_info else {
+        return Err(anyhow!("expected 1 message in database").into())
+    };
 
     let sub_alphabet = random_sub_alphabet();
 
     let ciphertext: String = msg_info
-        .0
+        .1
         .chars()
         .map(|c| *sub_alphabet.get(&c.to_ascii_lowercase()).unwrap_or(&c))
         .collect();
@@ -79,41 +82,64 @@ async fn get_aristocrat(State(state): State<AppState>) -> AppResult<Json<Aristoc
     let tag = hmac::sign(
         &state.hmac_key,
         &[
+            msg_info.0.to_le_bytes().to_vec(),
             timestamp.to_le_bytes().to_vec(),
-            msg_info.0.to_lowercase().as_bytes().to_vec(),
+            msg_info.1.to_lowercase().as_bytes().to_vec(),
         ]
         .concat(),
     );
 
-    Ok(Json(AristocratResponse {
-        message: ciphertext,
+    Ok(Json(NewResponse {
+        id: msg_info.0,
+        ciphertext,
         sig: base64::encode(tag.as_ref()),
         timestamp,
-        attribution: msg_info.1.unwrap_or("Unknown".to_string()),
+        attribution: msg_info.2.unwrap_or("Unknown".to_string()),
     }))
 }
 
 #[derive(Deserialize)]
-struct AristocratSolutionSubmitRequest {
+struct SubmitRequest {
+    id: i32,
     message: String,
     sig: String,
     timestamp: u128,
 }
 
-async fn post_aristocrat(
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SubmitResponse {
+    plaintext: String,
+    time_taken: u128,
+}
+
+async fn submit(
     State(state): State<AppState>,
-    Json(req): Json<AristocratSolutionSubmitRequest>,
-) -> AppResult<Json<u128>> {
+    Json(req): Json<SubmitRequest>,
+) -> AppResult<Json<SubmitResponse>> {
+    use crate::schema::messages::dsl::*;
+    let conn = &mut state.db_pool.get().await?;
+
     if let Ok(()) = hmac::verify(
         &state.hmac_key,
         &[
+            req.id.to_le_bytes().to_vec(),
             req.timestamp.to_le_bytes().to_vec(),
             req.message.to_lowercase().as_bytes().to_vec(),
         ]
         .concat(),
         &base64::decode(req.sig.as_bytes().to_vec())?,
     ) {
-        return Ok(Json(get_timestamp() - req.timestamp));
+        // How do i get the plaintext out of only the sig and timestamp? either i need the puzzle id or some other sort of identifier
+        // if i include the puzzle id, i'm afraid that you can use that to just solve the puzzle instantly.
+        return Ok(Json(SubmitResponse {
+            plaintext: messages
+                .select(message)
+                .filter(id.eq(req.id))
+                .first::<String>(conn)
+                .await?,
+            time_taken: get_timestamp() - req.timestamp,
+        }));
     }
 
     Err(AppError::from(
@@ -124,6 +150,6 @@ async fn post_aristocrat(
 
 pub fn app() -> Router<AppState> {
     Router::new()
-        .route("/new", get(get_aristocrat))
-        .route("/submit", post(post_aristocrat))
+        .route("/new", get(new))
+        .route("/submit", post(submit))
 }

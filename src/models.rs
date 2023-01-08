@@ -15,4 +15,5 @@ pub struct User {
     pub email: Option<String>,
     pub password_hash: String,
     pub solved: i32,
+    pub experience: i32,
 }

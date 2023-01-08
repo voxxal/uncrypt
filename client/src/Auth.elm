@@ -5,13 +5,10 @@ import Dict
 import Route exposing (Route)
 import Route.Path
 import Shared
+import Auth.User
 
 
-type alias User =
-    { id : String
-    , username : String
-    }
-
+type alias User = Auth.User.User
 
 {-| Called before an auth-only page is loaded. -}
 onPageLoad : Shared.Model -> Route () -> Auth.Action.Action User

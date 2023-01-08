@@ -124,7 +124,7 @@ view : Model -> View Msg
 view model =
     { title = "Login"
     , body =
-        [ div [ Attr.class "settings-content text-content" ]
+        [ div [ Attr.class "auth-content" ]
             [ textInput
                 { id = "login-username"
                 , name = "Username"

@@ -78,7 +78,7 @@ pub fn generate_jwt(user: &User, exp: Duration) -> JwtResult<String> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Auth(Claims);
+pub struct Auth(pub Claims);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for Auth

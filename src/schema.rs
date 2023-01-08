@@ -15,6 +15,7 @@ diesel::table! {
         email -> Nullable<Varchar>,
         password_hash -> Varchar,
         solved -> Int4,
+        experience -> Int4,
     }
 }
 

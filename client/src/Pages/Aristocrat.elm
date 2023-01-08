@@ -1,5 +1,8 @@
 module Pages.Aristocrat exposing (Model, Msg, page)
 
+import Api
+import Api.Aristocrat
+import Api.Http
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
 import Dict exposing (Dict)
@@ -34,28 +37,24 @@ page shared route =
 -- INIT
 
 
+type alias Puzzle =
+    Api.Aristocrat.Puzzle
+
+
 type SolveStatus
     = NotChecked
     | Failure
-    | Solved
-
-
-type Timing
-    = NotStarted
-    | Started Int
-    | Finished Int
+    | Solved Api.Aristocrat.SubmitResponse
 
 
 type alias Model =
     { ciphertext : Array Char
+    , puzzle : Api.Status Puzzle
     , translation : Dict Char Char
     , reverseTrans : Dict Char (List Char)
     , index : Int
     , letterFrequencies : Dict Char Int
-    , attribution : String
     , solved : SolveStatus
-    , timing : Timing
-    , sig : String
     }
 
 
@@ -68,23 +67,17 @@ init : () -> ( Model, Effect Msg )
 init _ =
     let
         model =
-            { translation = Dict.empty
+            { ciphertext = Array.empty
+            , puzzle = Api.Loading
+            , translation = Dict.empty
             , reverseTrans = Dict.empty
             , index = 0
-            , ciphertext = Array.empty
             , letterFrequencies = Dict.empty
-            , attribution = "Unknown"
             , solved = NotChecked
-            , timing = NotStarted
-            , sig = ""
             }
     in
     ( model
-    , Http.get
-        { url = "/api/aristocrat/new"
-        , expect = Http.expectJson GotPuzzleInfo puzzleInfoDecoder
-        }
-        |> Effect.sendCmd
+    , Api.Aristocrat.new GotPuzzle
     )
 
 
@@ -92,51 +85,39 @@ init _ =
 -- UPDATE
 
 
-type alias PuzzleInfo =
-    { message : String
-    , sig : String
-    , timestamp : Int
-    , attribution : String
-    }
-
-
-puzzleInfoDecoder : D.Decoder PuzzleInfo
-puzzleInfoDecoder =
-    D.map4 PuzzleInfo
-        (D.field "message" D.string)
-        (D.field "sig" D.string)
-        (D.field "timestamp" D.int)
-        (D.field "attribution" D.string)
-
-
 type Msg
-    = GotPuzzleInfo (Result Http.Error PuzzleInfo)
+    = GotPuzzle (Result Api.Http.Error Puzzle)
     | KeyPress String
     | Clicked Int
     | SubmitSolution
-    | GotSubmitResponse (Result Http.Error Int)
+    | GotSubmitResponse (Result Api.Http.Error Api.Aristocrat.SubmitResponse)
     | TryAnother
 
 
-update : Msg -> Model -> ( Model, Effect Msg )
-update msg model =
+updateLoading : Msg -> Model -> ( Model, Effect Msg )
+updateLoading msg model =
     case msg of
-        GotPuzzleInfo (Ok puzzleInfo) ->
+        GotPuzzle (Ok puzzle) ->
             ( { model
-                | ciphertext = puzzleInfo.message |> String.toList |> Array.fromList
-                , attribution = puzzleInfo.attribution
-                , sig = puzzleInfo.sig
-                , timing = Started puzzleInfo.timestamp
-                , letterFrequencies = Dict.frequencies (puzzleInfo.message |> String.toList)
+                | ciphertext = puzzle.ciphertext |> String.toList |> Array.fromList
+                , puzzle = Api.Success puzzle
+                , letterFrequencies = Dict.frequencies (puzzle.ciphertext |> String.toList)
               }
             , Effect.none
             )
 
-        GotPuzzleInfo (Err _) ->
-            ( { model | ciphertext = "Something went wrong! Try connecting to wifi." |> String.toList |> Array.fromList }
+        GotPuzzle (Err err) ->
+            ( { model | puzzle = Api.Failure err }
             , Effect.none
             )
 
+        _ ->
+            ( model, Effect.none )
+
+
+updateSuccess : Msg -> Model -> Puzzle -> ( Model, Effect Msg )
+updateSuccess msg model puzzle =
+    case msg of
         KeyPress key ->
             let
                 shift : Int -> Int
@@ -168,116 +149,108 @@ update msg model =
                         Nothing ->
                             0
             in
-            if model.solved /= Solved then
-                case key of
-                    "Enter" ->
-                        update SubmitSolution model
+            case model.solved of
+                Solved _ ->
+                    ( model, Effect.none )
 
-                    "Backspace" ->
-                        case Array.get model.index model.ciphertext of
-                            Just char ->
-                                ( { model
-                                    | index = model.index + shift 1
-                                    , translation = Dict.remove char model.translation
-                                    , reverseTrans = removeFromDictLists char model.reverseTrans
-                                  }
-                                , Effect.none
-                                )
+                _ ->
+                    case key of
+                        "Enter" ->
+                            update SubmitSolution model
 
-                            Nothing ->
-                                ( model, Effect.none )
+                        "Backspace" ->
+                            case Array.get model.index model.ciphertext of
+                                Just char ->
+                                    ( { model
+                                        | index = model.index + shift 1
+                                        , translation = Dict.remove char model.translation
+                                        , reverseTrans = removeFromDictLists char model.reverseTrans
+                                      }
+                                    , Effect.none
+                                    )
 
-                    "ArrowLeft" ->
-                        ( { model | index = model.index + shift -1 }, Effect.none )
-
-                    "ArrowRight" ->
-                        ( { model | index = model.index + shift 1 }, Effect.none )
-
-                    any ->
-                        case String.uncons any of
-                            Just ( pressedKey, "" ) ->
-                                let
-                                    letter =
-                                        Char.toLower pressedKey
-                                in
-                                if Char.isAlpha pressedKey then
-                                    case Array.get model.index model.ciphertext of
-                                        Just char ->
-                                            let
-                                                maybeOldChar =
-                                                    Dict.get char model.translation
-
-                                                newTranslation =
-                                                    Dict.insert char letter model.translation
-                                            in
-                                            ( { model
-                                                | index = model.index + shiftOverAnswered newTranslation 1
-                                                , translation = newTranslation
-                                                , reverseTrans =
-                                                    model.reverseTrans
-                                                        |> (case maybeOldChar of
-                                                                Just _ ->
-                                                                    removeFromDictLists char
-
-                                                                Nothing ->
-                                                                    identity
-                                                           )
-                                                        |> Dict.insertDedupe
-                                                            (++)
-                                                            letter
-                                                            [ char ]
-                                                , solved = NotChecked
-                                              }
-                                            , Effect.none
-                                            )
-
-                                        _ ->
-                                            ( model, Effect.none )
-
-                                else
+                                Nothing ->
                                     ( model, Effect.none )
 
-                            _ ->
-                                ( model, Effect.none )
+                        "ArrowLeft" ->
+                            ( { model | index = model.index + shift -1 }, Effect.none )
 
-            else
-                ( model, Effect.none )
+                        "ArrowRight" ->
+                            ( { model | index = model.index + shift 1 }, Effect.none )
+
+                        any ->
+                            case String.uncons any of
+                                Just ( pressedKey, "" ) ->
+                                    let
+                                        letter =
+                                            Char.toLower pressedKey
+                                    in
+                                    if Char.isAlpha pressedKey then
+                                        case Array.get model.index model.ciphertext of
+                                            Just char ->
+                                                let
+                                                    maybeOldChar =
+                                                        Dict.get char model.translation
+
+                                                    newTranslation =
+                                                        Dict.insert char letter model.translation
+                                                in
+                                                ( { model
+                                                    | index = model.index + shiftOverAnswered newTranslation 1
+                                                    , translation = newTranslation
+                                                    , reverseTrans =
+                                                        model.reverseTrans
+                                                            |> (case maybeOldChar of
+                                                                    Just _ ->
+                                                                        removeFromDictLists char
+
+                                                                    Nothing ->
+                                                                        identity
+                                                               )
+                                                            |> Dict.insertDedupe
+                                                                (++)
+                                                                letter
+                                                                [ char ]
+                                                    , solved = NotChecked
+                                                  }
+                                                , Effect.none
+                                                )
+
+                                            _ ->
+                                                ( model, Effect.none )
+
+                                    else
+                                        ( model, Effect.none )
+
+                                _ ->
+                                    ( model, Effect.none )
 
         Clicked index ->
             ( { model | index = index }, Effect.none )
 
         SubmitSolution ->
-            case model.timing of
-                Started timestamp ->
-                    ( model
-                    , Http.post
-                        { url = "/api/aristocrat/submit"
-                        , body =
-                            Http.jsonBody
-                                (E.object
-                                    [ ( "message"
-                                      , E.string
-                                            (Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault c) model.ciphertext
-                                                |> Array.toList
-                                                |> String.fromList
-                                            )
-                                      )
-                                    , ( "sig", E.string model.sig )
-                                    , ( "timestamp", E.int timestamp )
-                                    ]
-                                )
-                        , expect = Http.expectJson GotSubmitResponse D.int
-                        }
-                        |> Effect.sendCmd
-                    )
-
-                _ ->
+            case model.solved of
+                Solved _ ->
                     ( model, Effect.none )
 
-        GotSubmitResponse (Ok timeTaken) ->
-            ( { model | solved = Solved, timing = Finished timeTaken }, Effect.confetti )
+                _ ->
+                    ( model
+                    , Api.Aristocrat.submit
+                        { id = puzzle.id
+                        , message =
+                            Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault c) model.ciphertext
+                                |> Array.toList
+                                |> String.fromList
+                        , sig = puzzle.sig
+                        , timestamp = puzzle.timestamp
+                        }
+                        GotSubmitResponse
+                    )
 
-        GotSubmitResponse (Err (Http.BadStatus 417)) ->
+        GotSubmitResponse (Ok res) ->
+            ( { model | solved = Solved res }, Effect.confetti )
+
+        GotSubmitResponse (Err (Api.Http.BadStatus _)) ->
             ( { model | solved = Failure }, Effect.none )
 
         -- TODO handle rest of responses
@@ -286,6 +259,22 @@ update msg model =
 
         TryAnother ->
             init ()
+
+        _ ->
+            ( model, Effect.none )
+
+
+update : Msg -> Model -> ( Model, Effect Msg )
+update msg model =
+    case model.puzzle of
+        Api.Loading ->
+            updateLoading msg model
+
+        Api.Success puzzle ->
+            updateSuccess msg model puzzle
+
+        Api.Failure _ ->
+            ( model, Effect.none )
 
 
 sign : Int -> Int
@@ -328,8 +317,23 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> View Msg
-view model =
+isSolved : SolveStatus -> Bool
+isSolved solveStatus =
+    case solveStatus of
+        Solved _ ->
+            True
+
+        _ ->
+            False
+
+
+viewLoading : List (Html Msg)
+viewLoading =
+    [ div [ Attr.class "aristocrat-content text-content" ] [ text "Loading..." ] ]
+
+
+viewSuccess : Model -> Puzzle -> List (Html Msg)
+viewSuccess model puzzle =
     let
         words =
             model.ciphertext
@@ -359,67 +363,103 @@ view model =
                         Just (c |> Char.toUpper |> String.fromChar)
                 )
                 letters
-
     in
+    [ div [ Attr.class "aristocrat-content" ]
+        [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", isSolved model.solved ) ] ]
+            (if Array.isEmpty model.ciphertext then
+                [ text "Loading..." ]
+
+             else
+                [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
+                , div [] (List.map (\( i, word ) -> viewWord model i word) words)
+                , span [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
+                ]
+            )
+        , div [ Attr.class "controls" ]
+            [ h2 [ Attr.class "label" ] [ text "REMAINING LETTERS" ]
+            , div [ Attr.class "remainingLetters" ]
+                (List.map
+                    (\c ->
+                        span [ Attr.class "remainingLetter" ] [ text c ]
+                    )
+                    remainingCharacters
+                )
+            , button
+                [ Attr.classList
+                    [ ( "button", True )
+                    , ( "submitButton", True )
+                    , ( "shake", model.solved == Failure )
+                    ]
+                , Events.onClick SubmitSolution
+                ]
+                [ text "Check" ]
+            ]
+        ]
+    , viewModalBox model puzzle
+    ]
+
+
+viewFailure : Api.Http.Error -> List (Html Msg)
+viewFailure err =
+    let
+        errMsg =
+            case err of
+                Api.Http.BadUrl url ->
+                    "Url " ++ url ++ " is bad"
+
+                Api.Http.Timeout ->
+                    "Timed Out"
+
+                Api.Http.NetworkError ->
+                    "Disconnected from the internet"
+
+                Api.Http.BadStatus { status, message } ->
+                    String.fromInt status ++ " " ++ message
+
+                Api.Http.BadBody message ->
+                    "Bad Body: " ++ message
+    in
+    [ div [ Attr.class "aristocrat-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
+
+
+view : Model -> View Msg
+view model =
     { title = "Aristocrat"
     , body =
-        [ div [ Attr.class "aristocrat-content" ]
-            [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", model.solved == Solved ) ] ]
-                (if Array.isEmpty model.ciphertext then
-                    [ text "Loading..." ]
+        case model.puzzle of
+            Api.Loading ->
+                viewLoading
 
-                 else
-                    [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
-                    , div [] (List.map (\( i, word ) -> viewWord model i word) words)
-                    , span [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
-                    ]
-                )
-            , div [ Attr.class "controls" ]
-                [ h2 [ Attr.class "label" ] [ text "REMAINING LETTERS" ]
-                , div [ Attr.class "remainingLetters" ]
-                    (List.map
-                        (\c ->
-                            span [ Attr.class "remainingLetter" ] [ text c ]
-                        )
-                        remainingCharacters
-                    )
-                , button
-                    [ Attr.classList
-                        [ ( "button", True )
-                        , ( "submitButton", True )
-                        , ( "shake", model.solved == Failure )
-                        ]
-                    , Events.onClick SubmitSolution
-                    ]
-                    [ text "Check" ]
-                ]
-            ]
-        , viewModalBox model
-        ]
+            Api.Success puzzle ->
+                viewSuccess model puzzle
+
+            Api.Failure err ->
+                viewFailure err
     }
 
-viewModalBox : Model -> Html Msg
-viewModalBox model =
-            case model.timing of
-                Finished timeTaken ->
-                    div [ Attr.class "modal" ]
-                        [ div [ Attr.class "modalContent" ]
-                            [ h1 [] [ text "Congratulations!" ]
-                            , div []
-                                [ text "You completed the Aristocrat in "
-                                , strong [] [ text (String.fromFloat (toFloat timeTaken / 1000)) ]
-                                , text " seconds!"
-                                ]
-                            , div [ Attr.class "messageContainer" ]
-                                [ div [ Attr.class "message" ] [ text ("\"" ++ "you did it! this is placeholder until i figure out how to show the solved message here :)" ++ "\"") ]
-                                , div [ Attr.class "attribution" ] [ text ("- " ++ model.attribution) ]
-                                ]
-                            , button [ Attr.class "button", Events.onClick TryAnother ] [ text "Try another" ]
-                            ]
-                        ]
 
-                _ ->
-                    text ""
+viewModalBox : Model -> Puzzle -> Html Msg
+viewModalBox model puzzle =
+    case model.solved of
+        Solved info ->
+            div [ Attr.class "modal" ]
+                [ div [ Attr.class "modalContent" ]
+                    [ h1 [] [ text "Congratulations!" ]
+                    , div []
+                        [ text "You completed the Aristocrat in "
+                        , strong [] [ text (String.fromFloat (toFloat info.timeTaken / 1000)) ]
+                        , text " seconds!"
+                        ]
+                    , div [ Attr.class "messageContainer" ]
+                        [ div [ Attr.class "message" ] [ text ("\"" ++ info.plaintext ++ "\"") ]
+                        , div [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
+                        ]
+                    , button [ Attr.class "button submitButton", Events.onClick TryAnother ] [ text "Try another" ]
+                    ]
+                ]
+
+        _ ->
+            text ""
 
 
 viewWord : Model -> Int -> String -> Html Msg
@@ -431,7 +471,7 @@ viewCharacter : Model -> Int -> Char -> Html Msg
 viewCharacter model index char =
     let
         notSolved =
-            not (model.solved == Solved)
+            not (isSolved model.solved)
 
         bigChar =
             Maybe.unwrap
