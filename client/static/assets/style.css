@@ -304,7 +304,6 @@ body.dark .collision {
 
 .submitButton {
   width: 100%;
-  margin: auto;
   background-color: var(--green);
 }
 
@@ -366,7 +365,7 @@ body.dark .modalContent {
 }
 
 .messageContainer {
-  flex-grow: 1;
+  margin-bottom: 0.75rem;
 }
 
 .modalContent .message {
@@ -374,8 +373,60 @@ body.dark .modalContent {
   font-size: 1.5rem;
 }
 
-.modalContant .button {
-  align-self: flex-end;
+.modalContent .expSource {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.35rem;
+}
+
+.modalContent .expSourceAmount {
+  font-weight: 700;
+}
+
+.modalContent .levelInfo {
+  display: flex;
+  margin-top: auto;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.modalContent .levelContainer {
+  width: 100%;
+}
+
+.modalContent .levelBar {
+  width: 100%;
+  height: calc(100% - 0.75rem - 0.25rem);
+  border-radius: 1rem;
+  overflow: hidden;
+  background-color: var(--light-text-dark);
+}
+
+body.dark .modalContent .levelBar {
+  background-color: var(--light-text-light);
+}
+
+.modalContent .barFg {
+  background-color: var(--text-light);
+  height: 100%;
+}
+
+body.dark .modalContent .barFg {
+  background-color: var(--text-dark);
+}
+
+.modalContent .levelProgress {
+  color: var(--light-text-light);
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.modalContent .levelProgress {
+  color: var(--light-text-dark);
+}
+
+.modalContent .button {
   background-color: var(--green);
 }
 

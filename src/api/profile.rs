@@ -18,7 +18,7 @@ use crate::{
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ProfileResponse {
+pub struct ProfileResponse {
     id: String,
     username: String,
     solved: i32,
@@ -45,22 +45,19 @@ impl From<User> for ProfileResponse {
     }
 }
 
-async fn me(State(state): State<AppState>, auth: Option<Auth>) -> AppResult<Json<ProfileResponse>> {
+async fn me(State(state): State<AppState>, auth: Auth) -> AppResult<Json<ProfileResponse>> {
     let conn = &mut state.db_pool.get().await?;
 
-    if let Some(auth) = auth {
-        if let Some(user) = users::table
-            .filter(users::id.eq(auth.0.uid))
-            .first::<User>(conn)
-            .await
-            .optional()?
-        {
-            return Ok(Json(ProfileResponse::from(user)));
-        }
-
-        return Err(AppError::from(StatusCode::UNAUTHORIZED, "Token invalid"));
+    if let Some(user) = users::table
+        .filter(users::id.eq(auth.0.uid))
+        .first::<User>(conn)
+        .await
+        .optional()?
+    {
+        return Ok(Json(ProfileResponse::from(user)));
     }
-    return Err(AppError::from(StatusCode::UNAUTHORIZED, "Token not found"));
+
+    return Err(AppError::from(StatusCode::UNAUTHORIZED, "Token invalid"));
 }
 
 async fn profile(

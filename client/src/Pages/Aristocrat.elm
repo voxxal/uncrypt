@@ -19,14 +19,15 @@ import Maybe.Extra as Maybe
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
+import Shared.Msg
 import View exposing (View)
 
 
 page : Shared.Model -> Route () -> Page Model Msg
 page shared route =
     Page.new
-        { init = init
-        , update = update
+        { init = init shared.token
+        , update = update shared
         , subscriptions = subscriptions
         , view = view
         }
@@ -63,8 +64,8 @@ letters =
     String.toList "abcdefghijklmnopqrstuvwxyz"
 
 
-init : () -> ( Model, Effect Msg )
-init _ =
+init : Maybe String -> () -> ( Model, Effect Msg )
+init token _ =
     let
         model =
             { ciphertext = Array.empty
@@ -77,7 +78,7 @@ init _ =
             }
     in
     ( model
-    , Api.Aristocrat.new GotPuzzle
+    , Api.Aristocrat.new token GotPuzzle
     )
 
 
@@ -115,8 +116,8 @@ updateLoading msg model =
             ( model, Effect.none )
 
 
-updateSuccess : Msg -> Model -> Puzzle -> ( Model, Effect Msg )
-updateSuccess msg model puzzle =
+updateSuccess : Shared.Model -> Msg -> Model -> Puzzle -> ( Model, Effect Msg )
+updateSuccess shared msg model puzzle =
     case msg of
         KeyPress key ->
             let
@@ -156,7 +157,7 @@ updateSuccess msg model puzzle =
                 _ ->
                     case key of
                         "Enter" ->
-                            update SubmitSolution model
+                            ( model, Effect.sendMsg SubmitSolution )
 
                         "Backspace" ->
                             case Array.get model.index model.ciphertext of
@@ -235,7 +236,7 @@ updateSuccess msg model puzzle =
 
                 _ ->
                     ( model
-                    , Api.Aristocrat.submit
+                    , Api.Aristocrat.submit shared.token
                         { id = puzzle.id
                         , message =
                             Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault c) model.ciphertext
@@ -248,7 +249,17 @@ updateSuccess msg model puzzle =
                     )
 
         GotSubmitResponse (Ok res) ->
-            ( { model | solved = Solved res }, Effect.confetti )
+            ( { model | solved = Solved res }
+            , Effect.batch
+                [ Effect.confetti
+                , case res.profile of
+                    Just profile ->
+                        Effect.sendSharedMsg (Shared.Msg.GotProfile (Ok profile))
+
+                    Nothing ->
+                        Effect.none
+                ]
+            )
 
         GotSubmitResponse (Err (Api.Http.BadStatus _)) ->
             ( { model | solved = Failure }, Effect.none )
@@ -258,20 +269,20 @@ updateSuccess msg model puzzle =
             ( model, Effect.none )
 
         TryAnother ->
-            init ()
+            init shared.token ()
 
         _ ->
             ( model, Effect.none )
 
 
-update : Msg -> Model -> ( Model, Effect Msg )
-update msg model =
+update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
+update shared msg model =
     case model.puzzle of
         Api.Loading ->
             updateLoading msg model
 
         Api.Success puzzle ->
-            updateSuccess msg model puzzle
+            updateSuccess shared msg model puzzle
 
         Api.Failure _ ->
             ( model, Effect.none )
@@ -454,12 +465,49 @@ viewModalBox model puzzle =
                         [ div [ Attr.class "message" ] [ text ("\"" ++ info.plaintext ++ "\"") ]
                         , div [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
                         ]
+                    , case info.expSources of
+                        Just expSources ->
+                            div [ Attr.class "expSources" ] (List.map viewExpSource expSources)
+
+                        Nothing ->
+                            text ""
+
+                    -- TODO we probably want a total exp gained
+                    , case info.profile of
+                        Just profile ->
+                            div [ Attr.class "levelInfo" ]
+                                [ span [ Attr.class "level" ] [ text (String.fromInt profile.level) ]
+                                , div [ Attr.class "levelContainer" ]
+                                    [ div [ Attr.class "levelBar" ]
+                                        [ div [ Attr.class "barBg" ] []
+                                        , div
+                                            [ Attr.class "barFg"
+                                            , Attr.style "width" (String.fromFloat (toFloat profile.expThrough / toFloat profile.expRequired * 100) ++ "%")
+                                            ]
+                                            []
+                                        ]
+                                    , div [ Attr.class "levelProgress" ]
+                                        [ text (String.fromInt profile.expThrough ++ "/" ++ String.fromInt profile.expRequired)
+                                        ]
+                                    ]
+                                ]
+
+                        Nothing ->
+                            text ""
                     , button [ Attr.class "button submitButton", Events.onClick TryAnother ] [ text "Try another" ]
                     ]
                 ]
 
         _ ->
             text ""
+
+
+viewExpSource : Api.Aristocrat.ExpSource -> Html Msg
+viewExpSource source =
+    div [ Attr.classList [ ( "expSource", True ), ( "special", source.special ) ] ]
+        [ span [ Attr.class "expSourceName" ] [ text source.name ]
+        , span [ Attr.class "expSourceAmount" ] [ text source.amount ]
+        ]
 
 
 viewWord : Model -> Int -> String -> Html Msg
