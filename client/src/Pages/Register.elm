@@ -1,4 +1,4 @@
-module Pages.Login exposing (Model, Msg, page)
+module Pages.Register exposing (Model, Msg, page)
 
 import Api.Auth exposing (AuthorizedResponse)
 import Api.Http
@@ -32,6 +32,7 @@ page shared route =
 type alias Model =
     { username : String
     , password : String
+    , email : String
     , isSubmitting : Bool
     , badRegister : String
     }
@@ -41,6 +42,7 @@ init : () -> ( Model, Effect Msg )
 init () =
     ( { username = ""
       , password = ""
+      , email = ""
       , isSubmitting = False
       , badRegister = ""
       }
@@ -56,6 +58,7 @@ type Msg
     = ExampleMsgReplaceMe
     | UpdateUsername String
     | UpdatePassword String
+    | UpdateEmail String
     | Submit
     | GotResponse (Result Api.Http.Error AuthorizedResponse)
 
@@ -74,9 +77,17 @@ update msg model =
         UpdatePassword password ->
             ( { model | password = password }, Effect.none )
 
+        UpdateEmail email ->
+            ( { model | email = email }, Effect.none )
+
         Submit ->
             ( { model | isSubmitting = True }
-            , Api.Auth.login { username = model.username, password = model.password } GotResponse
+            , Api.Auth.register
+                { username = model.username
+                , password = model.password
+                , email = model.email
+                }
+                GotResponse
             )
 
         GotResponse (Ok { token }) ->
@@ -106,10 +117,10 @@ subscriptions model =
 
 view : Model -> View Msg
 view model =
-    { title = "Login"
+    { title = "Register"
     , body =
-        [ div [ Attr.class "login-content" ]
-            [ h1 [] [ text "Login" ]
+        [ div [ Attr.class "register-content" ]
+            [ h1 [] [ text "Register" ]
             , textInput
                 { id = "login-username"
                 , name = "Username"
@@ -126,17 +137,25 @@ view model =
                 , onInput = UpdatePassword
                 }
             , br [] []
+            , textInput
+                { id = "login-email"
+                , name = "Email"
+                , placeholder = Nothing
+                , value = model.email
+                , onInput = UpdateEmail
+                }
+            , p [ Attr.class "registerInfoText" ] [ em [] [ text "Email is not required, but can be used to recover your account in the event you forget your password. We'll never send you emails about anything." ] ]
 
-            -- this works but i should probably not reuse `login` styles
+            -- again, word login probably doesn't fit here.
             , button [ Attr.class "button login", Events.onClick Submit ]
                 [ if model.isSubmitting then
                     text "Loading..."
 
                   else
-                    text "Login"
+                    text "Register"
                 ]
             , p [ Attr.class "errorText" ] [ text model.badRegister ]
-            , p [] [ text "Need an account? ", a [ Attr.class "link", Attr.href "/register" ] [ text "Register" ] ]
+            , p [] [ text "Already have an account? ", a [ Attr.class "link", Attr.href "/login" ] [ text "Login" ] ]
             ]
         ]
     }

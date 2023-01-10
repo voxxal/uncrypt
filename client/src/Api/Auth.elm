@@ -37,6 +37,32 @@ login { username, password } toMsg =
         |> Effect.sendCmd
 
 
+register :
+    { username : String, password : String, email : String }
+    -> (Result Api.Http.Error AuthorizedResponse -> msg)
+    -> Effect msg
+register { username, password, email } toMsg =
+    Http.post
+        { url = "/api/auth/register"
+        , body =
+            Http.jsonBody
+                (E.object
+                    [ ( "username", E.string username )
+                    , ( "password", E.string password )
+                    , ( "email"
+                      , if String.isEmpty email then
+                            E.null
+
+                        else
+                            E.string email
+                      )
+                    ]
+                )
+        , expect = Api.Http.expectJson toMsg authorizedResponseDecoder
+        }
+        |> Effect.sendCmd
+
+
 profile : String -> (Result Api.Http.Error Auth.User.User -> msg) -> Effect msg
 profile token toMsg =
     Jwt.Http.get token

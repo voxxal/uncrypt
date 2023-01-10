@@ -29,15 +29,15 @@ impl UserAuthorizedResponse {
 }
 
 #[derive(Deserialize)]
-struct AuthRequest {
+struct RegisterRequest {
     pub username: String,
     pub password: String,
-    // register and login diverge, as register can take an email
+    pub email: Option<String>
 }
 
 async fn register(
     State(state): State<AppState>,
-    Json(req): Json<AuthRequest>,
+    Json(req): Json<RegisterRequest>,
 ) -> AppResult<Json<UserAuthorizedResponse>> {
     #[derive(Insertable)]
     #[diesel(table_name = users)]
@@ -77,9 +77,15 @@ async fn register(
     Ok(Json(UserAuthorizedResponse::from_user(&new_user)?))
 }
 
+#[derive(Deserialize)]
+struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
 async fn login(
     State(state): State<AppState>,
-    Json(req): Json<AuthRequest>,
+    Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<UserAuthorizedResponse>> {
     let conn = &mut state.db_pool.get().await?;
 

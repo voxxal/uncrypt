@@ -83,10 +83,11 @@ view shared model =
     { title = "Settings"
     , body =
         [ div [ Attr.class "settings-content text-content" ]
-            [ label [ Attr.class "label", Attr.for "theme" ] [ text "THEME: " ]
+            [ label [ Attr.class "label settingsLabel", Attr.for "theme" ] [ text "THEME: " ]
             , select
                 [ Attr.name "theme"
                 , Attr.id "theme"
+                , Attr.class "input"
                 , Events.onInput
                     (Settings.Theme.fromString
                         >> Settings.Theme

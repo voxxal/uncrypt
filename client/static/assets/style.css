@@ -450,13 +450,19 @@ body.dark .text-content a {
   color: var(--bg-white);
 }
 
-/* AUTH */
-
-.auth-content {
-  margin-top: 3rem;
+.settingsLabel {
+  display: inline;
+  margin-right: 0.15rem;
 }
 
-.textInput {
+/* AUTH */
+
+.login-content .input {
+  width: 15rem;
+  font-size: 1.15rem;
+}
+
+.input {
   background-color: var(--text-dark);
   color: var(--text-light);
   border: none;
@@ -465,7 +471,7 @@ body.dark .text-content a {
   font-size: 1rem;
 }
 
-body.dark .textInput {
+body.dark .input {
   background-color: var(--text-light);
   color: var(--text-dark);
 }
@@ -474,6 +480,19 @@ body.dark .textInput {
   color: var(--dark-orange);
 }
 
+.link {
+  color: var(--blue);
+}
+
 body.dark .errorText {
   color: var(--orange);
+}
+
+.register-content .input {
+  width: 20rem;
+  font-size: 1.15rem;
+}
+
+.registerInfoText {
+  max-width: 20rem;
 }

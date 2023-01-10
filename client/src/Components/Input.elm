@@ -22,7 +22,7 @@ textInput { id, name, placeholder, value, onInput } =
             , Events.onInput onInput
             , Attr.value value
             , Attr.placeholder (Maybe.withDefault "" placeholder)
-            , Attr.class "textInput"
+            , Attr.class "input"
             ]
             []
         ]
@@ -45,7 +45,7 @@ passwordInput { id, name, placeholder, value, onInput } =
             , Events.onInput onInput
             , Attr.value value
             , Attr.placeholder (Maybe.withDefault "" placeholder)
-            , Attr.class "textInput"
+            , Attr.class "input"
             ]
             []
         ]
