@@ -1,7 +1,8 @@
-module Api.Aristocrat exposing (Puzzle, new, submit)
+module Api.Baconian exposing (..)
 
 import Api.Http
 import Api.Puzzle
+import Array exposing (Array)
 import Effect exposing (Effect)
 import Http
 import Json.Decode as D
@@ -11,7 +12,7 @@ import Jwt.Http
 
 type alias Puzzle =
     { id : Int
-    , ciphertext : String
+    , ciphertext : Array String
     , sig : String
     , timestamp : Int
     , attribution : String
@@ -22,7 +23,7 @@ puzzleDecoder : D.Decoder Puzzle
 puzzleDecoder =
     D.map5 Puzzle
         (D.field "id" D.int)
-        (D.field "ciphertext" D.string)
+        (D.field "ciphertext" (D.array D.string))
         (D.field "sig" D.string)
         (D.field "timestamp" D.int)
         (D.field "attribution" D.string)
@@ -33,17 +34,18 @@ new maybeToken toMsg =
     case maybeToken of
         Just token ->
             Jwt.Http.get token
-                { url = "/api/aristocrat/new"
+                { url = "/api/baconian/new"
                 , expect = Api.Http.expectJson toMsg puzzleDecoder
                 }
                 |> Effect.sendCmd
 
         Nothing ->
             Http.get
-                { url = "/api/aristocrat/new"
+                { url = "/api/baconian/new"
                 , expect = Api.Http.expectJson toMsg puzzleDecoder
                 }
                 |> Effect.sendCmd
+
 
 submit :
     Maybe String
@@ -59,7 +61,7 @@ submit maybeToken { id, message, sig, timestamp } toMsg =
     case maybeToken of
         Just token ->
             Jwt.Http.post token
-                { url = "/api/aristocrat/submit"
+                { url = "/api/baconian/submit"
                 , body =
                     Http.jsonBody
                         (E.object
@@ -75,7 +77,7 @@ submit maybeToken { id, message, sig, timestamp } toMsg =
 
         Nothing ->
             Http.post
-                { url = "/api/aristocrat/submit"
+                { url = "/api/baconian/submit"
                 , body =
                     Http.jsonBody
                         (E.object

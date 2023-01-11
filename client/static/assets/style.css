@@ -168,7 +168,14 @@ body.dark .level {
 
 /* ARISTOCRAT */
 
+/* maybe merge into puzzle content? */
 .aristocrat-content {
+  display: grid;
+  grid-template-columns: 5fr 1fr;
+  margin: 2rem 3rem;
+}
+
+.baconian-content {
   display: grid;
   grid-template-columns: 5fr 1fr;
   margin: 2rem 3rem;

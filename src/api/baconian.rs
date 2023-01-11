@@ -28,32 +28,32 @@ use super::{profile::ProfileResponse, SubmitResponse};
 
 lazy_static! {
     static ref BACONIAN: HashMap<char, BitArray<[u8; 1], Msb0>> = HashMap::from([
-        ('a', bitarr![u8, Msb0; 0b00000]),
-        ('b', bitarr![u8, Msb0; 0b00001]),
-        ('c', bitarr![u8, Msb0; 0b00000]),
-        ('d', bitarr![u8, Msb0; 0b00001]),
-        ('e', bitarr![u8, Msb0; 0b00000]),
-        ('f', bitarr![u8, Msb0; 0b00001]),
-        ('g', bitarr![u8, Msb0; 0b00000]),
-        ('h', bitarr![u8, Msb0; 0b00001]),
-        ('i', bitarr![u8, Msb0; 0b00000]),
-        ('j', bitarr![u8, Msb0; 0b00000]),
-        ('k', bitarr![u8, Msb0; 0b00001]),
-        ('l', bitarr![u8, Msb0; 0b00000]),
-        ('m', bitarr![u8, Msb0; 0b00001]),
-        ('n', bitarr![u8, Msb0; 0b00000]),
-        ('o', bitarr![u8, Msb0; 0b00001]),
-        ('p', bitarr![u8, Msb0; 0b00000]),
-        ('q', bitarr![u8, Msb0; 0b00001]),
-        ('r', bitarr![u8, Msb0; 0b00000]),
-        ('s', bitarr![u8, Msb0; 0b00001]),
-        ('t', bitarr![u8, Msb0; 0b00000]),
-        ('u', bitarr![u8, Msb0; 0b00001]),
-        ('v', bitarr![u8, Msb0; 0b00001]),
-        ('w', bitarr![u8, Msb0; 0b00000]),
-        ('x', bitarr![u8, Msb0; 0b00001]),
-        ('y', bitarr![u8, Msb0; 0b00000]),
-        ('z', bitarr![u8, Msb0; 0b00001]),
+        ('a', bitarr![u8, Msb0; 0, 0, 0, 0, 0]),
+        ('b', bitarr![u8, Msb0; 0, 0, 0, 0, 1]),
+        ('c', bitarr![u8, Msb0; 0, 0, 0, 1, 0]),
+        ('d', bitarr![u8, Msb0; 0, 0, 0, 1, 1]),
+        ('e', bitarr![u8, Msb0; 0, 0, 1, 0, 0]),
+        ('f', bitarr![u8, Msb0; 0, 0, 1, 0, 1]),
+        ('g', bitarr![u8, Msb0; 0, 0, 1, 1, 0]),
+        ('h', bitarr![u8, Msb0; 0, 0, 1, 1, 1]),
+        ('i', bitarr![u8, Msb0; 0, 1, 0, 0, 0]),
+        ('j', bitarr![u8, Msb0; 0, 1, 0, 0, 0]),
+        ('k', bitarr![u8, Msb0; 0, 1, 0, 0, 1]),
+        ('l', bitarr![u8, Msb0; 0, 1, 0, 1, 0]),
+        ('m', bitarr![u8, Msb0; 0, 1, 0, 1, 1]),
+        ('n', bitarr![u8, Msb0; 0, 1, 1, 0, 0]),
+        ('o', bitarr![u8, Msb0; 0, 1, 1, 0, 1]),
+        ('p', bitarr![u8, Msb0; 0, 1, 1, 1, 0]),
+        ('q', bitarr![u8, Msb0; 0, 1, 1, 1, 1]),
+        ('r', bitarr![u8, Msb0; 1, 0, 0, 0, 0]),
+        ('s', bitarr![u8, Msb0; 1, 0, 0, 0, 1]),
+        ('t', bitarr![u8, Msb0; 1, 0, 0, 1, 0]),
+        ('u', bitarr![u8, Msb0; 1, 0, 0, 1, 1]),
+        ('v', bitarr![u8, Msb0; 1, 0, 0, 1, 1]),
+        ('w', bitarr![u8, Msb0; 1, 0, 1, 0, 0]),
+        ('x', bitarr![u8, Msb0; 1, 0, 1, 0, 1]),
+        ('y', bitarr![u8, Msb0; 1, 0, 1, 1, 0]),
+        ('z', bitarr![u8, Msb0; 1, 0, 1, 1, 1]),
     ]);
     static ref VARIANTS: [[Vec<char>; 2]; 4] = [
         [vec!['A'], vec!['B']],
@@ -174,7 +174,7 @@ async fn submit(
             let solve_exp = 75;
             let time_taken_sec = (time_taken as f64) / 1000.0;
             let time_bonus =
-                (100_f64 - ((time_taken_sec - 10.0).max(0.0) * 5.0 / 3.0)).max(0.0) as i32;
+                (100_f64 - ((time_taken_sec - 10.0).max(0.0) * 2.5 / 3.0)).max(0.0) as i32;
 
             let sum = solve_exp + time_bonus;
             let mut exp_sources = vec![ExpSource::additive("Solve", solve_exp)];

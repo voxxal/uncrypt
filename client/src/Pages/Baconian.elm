@@ -1,7 +1,7 @@
-module Pages.Aristocrat exposing (Model, Msg, page)
+module Pages.Baconian exposing (Model, Msg, page)
 
 import Api
-import Api.Aristocrat
+import Api.Baconian
 import Api.Http
 import Api.Puzzle
 import Array exposing (Array)
@@ -41,7 +41,7 @@ page shared route =
 
 
 type alias Puzzle =
-    Api.Aristocrat.Puzzle
+    Api.Baconian.Puzzle
 
 
 type alias SolveStatus =
@@ -49,12 +49,12 @@ type alias SolveStatus =
 
 
 type alias Model =
-    { ciphertext : Array Char
+    { ciphertext : Array String
     , puzzle : Api.Status Puzzle
-    , translation : Dict Char Char
-    , reverseTrans : Dict Char (List Char)
+    , translation : Dict String Char
+    , reverseTrans : Dict Char (List String)
     , index : Int
-    , letterFrequencies : Dict Char Int
+    , letterFrequencies : Dict String Int
     , solved : SolveStatus
     }
 
@@ -78,7 +78,7 @@ init token _ =
             }
     in
     ( model
-    , Api.Aristocrat.new token GotPuzzle
+    , Api.Baconian.new token GotPuzzle
     )
 
 
@@ -100,9 +100,9 @@ updateLoading msg model =
     case msg of
         GotPuzzle (Ok puzzle) ->
             ( { model
-                | ciphertext = puzzle.ciphertext |> String.toList |> Array.fromList
+                | ciphertext = puzzle.ciphertext
                 , puzzle = Api.Success puzzle
-                , letterFrequencies = Dict.frequencies (puzzle.ciphertext |> String.toList)
+                , letterFrequencies = Dict.frequencies (puzzle.ciphertext |> Array.toList)
               }
             , Effect.none
             )
@@ -124,28 +124,20 @@ updateSuccess shared msg model puzzle =
                 shift : Int -> Int
                 shift num =
                     case Array.get (model.index + num) model.ciphertext of
-                        Just char ->
-                            if Char.isAlpha char then
-                                num
-
-                            else
-                                shift (num + sign num)
+                        Just _ ->
+                            num
 
                         Nothing ->
                             0
 
                 -- Dict and shift happens at the same time. This function takes in the dict to go over already answered letters
-                shiftOverAnswered : Dict Char Char -> Int -> Int
+                shiftOverAnswered : Dict String Char -> Int -> Int
                 shiftOverAnswered newTranslation num =
                     case Array.get (model.index + num) model.ciphertext of
                         Just char ->
-                            if Char.isAlpha char then
-                                Maybe.unwrap num
-                                    (\_ -> shiftOverAnswered newTranslation (num + sign num))
-                                    (Dict.get char newTranslation)
-
-                            else
-                                shiftOverAnswered newTranslation (num + sign num)
+                            Maybe.unwrap num
+                                (\_ -> shiftOverAnswered newTranslation (num + sign num))
+                                (Dict.get char newTranslation)
 
                         Nothing ->
                             0
@@ -236,10 +228,10 @@ updateSuccess shared msg model puzzle =
 
                 _ ->
                     ( model
-                    , Api.Aristocrat.submit shared.token
+                    , Api.Baconian.submit shared.token
                         { id = puzzle.id
                         , message =
-                            Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault c) model.ciphertext
+                            Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault ' ') model.ciphertext
                                 |> Array.toList
                                 |> String.fromList
                         , sig = puzzle.sig
@@ -300,7 +292,7 @@ sign num =
         0
 
 
-removeFromDictLists : Char -> Dict Char (List Char) -> Dict Char (List Char)
+removeFromDictLists : String -> Dict Char (List String) -> Dict Char (List String)
 removeFromDictLists char =
     Dict.map
         (\_ v ->
@@ -340,30 +332,12 @@ isSolved solveStatus =
 
 viewLoading : List (Html Msg)
 viewLoading =
-    [ div [ Attr.class "aristocrat-content text-content" ] [ text "Loading..." ] ]
+    [ div [ Attr.class "baconian-content text-content" ] [ text "Loading..." ] ]
 
 
 viewSuccess : Model -> Puzzle -> List (Html Msg)
 viewSuccess model puzzle =
     let
-        words =
-            model.ciphertext
-                |> Array.toIndexedList
-                |> List.foldr
-                    (\( i, c ) acc ->
-                        case acc of
-                            ( _, xa ) :: xs ->
-                                if c /= ' ' then
-                                    ( i, String.fromChar c ++ xa ) :: xs
-
-                                else
-                                    ( i, "" ) :: acc
-
-                            [] ->
-                                [ ( i, String.fromChar c ) ]
-                    )
-                    []
-
         remainingCharacters =
             List.filterMap
                 (\c ->
@@ -375,14 +349,14 @@ viewSuccess model puzzle =
                 )
                 letters
     in
-    [ div [ Attr.class "aristocrat-content" ]
+    [ div [ Attr.class "Baconian-content" ]
         [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", isSolved model.solved ) ] ]
             (if Array.isEmpty model.ciphertext then
                 [ text "Loading..." ]
 
              else
                 [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
-                , div [] (List.map (\( i, word ) -> viewWord model i word) words)
+                , div [] (List.indexedMap (\i word -> viewWord model i word) (model.ciphertext |> Array.toList))
                 , span [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
                 ]
             )
@@ -430,12 +404,12 @@ viewFailure err =
                 Api.Http.BadBody message ->
                     "Bad Body: " ++ message
     in
-    [ div [ Attr.class "aristocrat-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
+    [ div [ Attr.class "Baconian-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
 
 
 view : Model -> View Msg
 view model =
-    { title = "Aristocrat"
+    { title = "Baconian"
     , body =
         case model.puzzle of
             Api.Loading ->
@@ -457,7 +431,7 @@ viewModalBox model puzzle =
                 [ div [ Attr.class "modalContent" ]
                     [ h1 [] [ text "Congratulations!" ]
                     , div []
-                        [ text "You completed the Aristocrat in "
+                        [ text "You completed the Baconian in "
                         , strong [] [ text (String.fromFloat (toFloat info.timeTaken / 1000)) ]
                         , text " seconds!"
                         ]
@@ -505,33 +479,21 @@ viewModalBox model puzzle =
 viewWord : Model -> Int -> String -> Html Msg
 viewWord model index word =
     div [ Attr.class "word" ]
-        (List.indexedMap
-            (\i c ->
-                let
-                    relI =
-                        i + index
-                in
-                if Char.isAlpha c then
-                    character
-                        { translatedChar = Maybe.unwrap ' ' Char.toUpper (Dict.get c model.translation)
-                        , untranslated = String.fromChar c
-                        , frequency = Maybe.withDefault 0 (Dict.get c model.letterFrequencies)
-                        , selected = model.index == relI
-                        , softSelected = Just c == Array.get model.index model.ciphertext
-                        , collision =
-                            case Dict.get c model.translation of
-                                Just decoded ->
-                                    Maybe.unwrap False
-                                        (\l -> List.length l > 1)
-                                        (Dict.get decoded model.reverseTrans)
+        [ character
+            { translatedChar = Maybe.unwrap ' ' Char.toUpper (Dict.get word model.translation)
+            , untranslated = word
+            , frequency = Maybe.withDefault 0 (Dict.get word model.letterFrequencies)
+            , selected = model.index == index
+            , softSelected = Just word == Array.get model.index model.ciphertext
+            , collision =
+                case Dict.get word model.translation of
+                    Just decoded ->
+                        Maybe.unwrap False
+                            (\l -> List.length l > 1)
+                            (Dict.get decoded model.reverseTrans)
 
-                                Nothing ->
-                                    False
-                        , onClick = Clicked relI
-                        }
-
-                else
-                    unimportant (String.fromChar c)
-            )
-            (String.toList word)
-        )
+                    Nothing ->
+                        False
+            , onClick = Clicked index
+            }
+        ]

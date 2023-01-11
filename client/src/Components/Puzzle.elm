@@ -1,5 +1,6 @@
 module Components.Puzzle exposing (..)
 
+import Api.Puzzle
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
@@ -35,3 +36,9 @@ character { translatedChar, untranslated, frequency, selected, softSelected, col
 unimportant : String -> Html msg
 unimportant char =
     span [ Attr.class "unimportant" ] [ text char ]
+
+
+type SolveStatus
+    = NotChecked
+    | Failure
+    | Solved Api.Puzzle.SubmitResponse
