@@ -44,8 +44,8 @@ async fn register(
     struct NewUser {
         id: String,
         username: String,
+        email: Option<String>,
         password_hash: String,
-        solved: i32,
     }
 
     if req.username.len() > 32 {
@@ -58,8 +58,8 @@ async fn register(
         .values(NewUser {
             id: nanoid!(),
             username: req.username,
+            email: req.email,
             password_hash: auth::hash_password(req.password).unwrap(),
-            solved: 0,
         })
         .on_conflict(users::username)
         .do_nothing()

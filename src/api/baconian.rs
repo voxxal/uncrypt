@@ -6,10 +6,12 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use bitvec::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use rand::seq::SliceRandom;
+use lazy_static::lazy_static;
 use rand::thread_rng;
+use rand::{seq::SliceRandom, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -24,27 +26,83 @@ use anyhow::anyhow;
 
 use super::{profile::ProfileResponse, SubmitResponse};
 
-type SubAlphabet = HashMap<char, char>;
+lazy_static! {
+    static ref BACONIAN: HashMap<char, BitArray<[u8; 1], Msb0>> = HashMap::from([
+        ('a', bitarr![u8, Msb0; 0b00000]),
+        ('b', bitarr![u8, Msb0; 0b00001]),
+        ('c', bitarr![u8, Msb0; 0b00000]),
+        ('d', bitarr![u8, Msb0; 0b00001]),
+        ('e', bitarr![u8, Msb0; 0b00000]),
+        ('f', bitarr![u8, Msb0; 0b00001]),
+        ('g', bitarr![u8, Msb0; 0b00000]),
+        ('h', bitarr![u8, Msb0; 0b00001]),
+        ('i', bitarr![u8, Msb0; 0b00000]),
+        ('j', bitarr![u8, Msb0; 0b00000]),
+        ('k', bitarr![u8, Msb0; 0b00001]),
+        ('l', bitarr![u8, Msb0; 0b00000]),
+        ('m', bitarr![u8, Msb0; 0b00001]),
+        ('n', bitarr![u8, Msb0; 0b00000]),
+        ('o', bitarr![u8, Msb0; 0b00001]),
+        ('p', bitarr![u8, Msb0; 0b00000]),
+        ('q', bitarr![u8, Msb0; 0b00001]),
+        ('r', bitarr![u8, Msb0; 0b00000]),
+        ('s', bitarr![u8, Msb0; 0b00001]),
+        ('t', bitarr![u8, Msb0; 0b00000]),
+        ('u', bitarr![u8, Msb0; 0b00001]),
+        ('v', bitarr![u8, Msb0; 0b00001]),
+        ('w', bitarr![u8, Msb0; 0b00000]),
+        ('x', bitarr![u8, Msb0; 0b00001]),
+        ('y', bitarr![u8, Msb0; 0b00000]),
+        ('z', bitarr![u8, Msb0; 0b00001]),
+    ]);
+    static ref VARIANTS: [[Vec<char>; 2]; 4] = [
+        [vec!['A'], vec!['B']],
+        [vec!['0'], vec!['1']],
+        [('a'..='m').collect(), ('n'..='z').collect()],
+        [('a'..='z').collect(), ('0'..='9').collect()]
+    ];
+}
 
-const ALPHABET: [char; 26] = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-    't', 'u', 'v', 'w', 'x', 'y', 'z',
-];
+fn random_variant() -> [Vec<char>; 2] {
+    let mut rng = thread_rng();
+    let mut variant = VARIANTS
+        .choose(&mut rng)
+        .expect("needs at least 1 variant")
+        .clone();
+
+    if rng.gen::<f32>() >= 0.5 {
+        variant.swap(0, 1);
+    }
+
+    variant
+}
+
+fn encode(variant: &[Vec<char>; 2], c: char) -> Option<String> {
+    let mut rng = thread_rng();
+    let Some(encoding) = BACONIAN.get(&c) else {
+        return None;
+    };
+
+    let mut buf = String::with_capacity(5);
+    for i in 0..5 {
+        let bit = encoding[i];
+        buf.push(
+            *variant[bit as usize]
+                .choose(&mut rng)
+                .expect("parts of variant should have at least 1 option"),
+        );
+    }
+
+    Some(buf)
+}
 
 #[derive(Serialize)]
 struct NewResponse {
     id: i32,
-    ciphertext: String, // TODO return as an array instead
+    ciphertext: Vec<String>,
     sig: String,
     timestamp: u128,
     attribution: String,
-}
-
-fn random_sub_alphabet() -> SubAlphabet {
-    let mut rng = thread_rng();
-    let mut shuffled = ALPHABET.clone();
-    shuffled.shuffle(&mut rng);
-    ALPHABET.zip(shuffled).into_iter().collect()
 }
 
 async fn new(State(state): State<AppState>, auth: Option<Auth>) -> AppResult<Json<NewResponse>> {
@@ -60,20 +118,28 @@ async fn new(State(state): State<AppState>, auth: Option<Auth>) -> AppResult<Jso
             return Err(anyhow!("expected 1 message in database").into())
         };
 
-    let sub_alphabet = random_sub_alphabet();
+    let variant = random_variant();
 
-    let ciphertext: String = message
+    let ciphertext: Vec<String> = message
+        .to_lowercase()
         .chars()
-        .map(|c| *sub_alphabet.get(&c.to_ascii_lowercase()).unwrap_or(&c))
+        .filter_map(|c| encode(&variant, c))
         .collect();
 
     let timestamp = get_timestamp();
 
+    let sig = generate_sig(
+        &state.hmac_key,
+        &auth,
+        msg_id,
+        timestamp,
+        message.chars().filter(|c| c.is_alphabetic()).collect(),
+    );
 
     Ok(Json(NewResponse {
         id: msg_id,
         ciphertext,
-        sig: generate_sig(&state.hmac_key, &auth, msg_id, timestamp, message),
+        sig,
         timestamp,
         attribution: attribution.unwrap_or("Unknown".to_string()),
     }))
@@ -86,7 +152,6 @@ struct SubmitRequest {
     sig: String,
     timestamp: u128,
 }
-
 
 async fn submit(
     State(state): State<AppState>,
@@ -101,12 +166,12 @@ async fn submit(
         &auth,
         req.id,
         req.timestamp,
-        req.message,
+        req.message.chars().filter(|c| c.is_alphabetic()).collect(),
         req.sig,
     )? {
         let time_taken = get_timestamp() - req.timestamp;
         if let Some(Auth(claims)) = auth {
-            let solve_exp = 100;
+            let solve_exp = 75;
             let time_taken_sec = (time_taken as f64) / 1000.0;
             let time_bonus =
                 (100_f64 - ((time_taken_sec - 10.0).max(0.0) * 5.0 / 3.0)).max(0.0) as i32;
@@ -118,7 +183,6 @@ async fn submit(
                 exp_sources.push(ExpSource::additive("Time Bonus", time_bonus));
             }
 
-            // TODO total and save to table to display recent solves
             let user = diesel::update(users::table)
                 .filter(users::id.eq(claims.uid))
                 .set((
@@ -126,8 +190,7 @@ async fn submit(
                     users::solved.eq(users::solved + 1),
                 ))
                 .get_result::<User>(conn)
-                .await
-                .optional()?;
+                .await?;
 
             return Ok(Json(SubmitResponse {
                 plaintext: messages::table
@@ -136,7 +199,7 @@ async fn submit(
                     .first::<String>(conn)
                     .await?,
                 time_taken,
-                profile: user.map(ProfileResponse::from),
+                profile: Some(ProfileResponse::from(user)),
                 exp_sources: Some(exp_sources),
             }));
         } else {

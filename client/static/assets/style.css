@@ -247,21 +247,30 @@ body.dark .attribution {
 }
 
 .softSelected {
-  background: rgb(255, 255, 200);
+  background-color: rgb(255, 255, 200);
 }
 
 body.dark .softSelected {
-  background: rgb(72, 72, 42);
+  background-color: rgb(72, 72, 42);
+}
+
+.puzzle.solved .softSelected {
+  background-color: transparent;
 }
 
 .selected {
-  background: rgb(255, 255, 0);
+  background-color: rgb(255, 255, 0) !important;
   cursor: default !important;
 }
 
 body.dark .selected {
-  background: rgb(96, 72, 10);
+  background-color: rgb(96, 72, 10) !important;
 }
+
+.puzzle.solved .selected {
+  background-color: transparent;
+}
+
 
 .collision {
   color: var(--dark-orange);

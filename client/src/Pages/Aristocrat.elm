@@ -5,6 +5,7 @@ import Api.Aristocrat
 import Api.Http
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
+import Components.Puzzle exposing (character, unimportant)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import Effect exposing (Effect)
@@ -512,7 +513,37 @@ viewExpSource source =
 
 viewWord : Model -> Int -> String -> Html Msg
 viewWord model index word =
-    div [ Attr.class "word" ] (List.indexedMap (\i c -> viewCharacter model (index + i) c) (String.toList word))
+    div [ Attr.class "word" ]
+        (List.indexedMap
+            (\i c ->
+                let
+                    relI =
+                        i + index
+                in
+                if Char.isAlpha c then
+                    character
+                        { translatedChar = Maybe.unwrap ' ' Char.toUpper (Dict.get c model.translation)
+                        , untranslated = String.fromChar c
+                        , frequency = Maybe.withDefault 0 (Dict.get c model.letterFrequencies)
+                        , selected = model.index == relI
+                        , softSelected = Just c == Array.get model.index model.ciphertext
+                        , collision =
+                            case Dict.get c model.translation of
+                                Just decoded ->
+                                    Maybe.unwrap False
+                                        (\l -> List.length l > 1)
+                                        (Dict.get decoded model.reverseTrans)
+
+                                Nothing ->
+                                    False
+                        , onClick = Clicked relI
+                        }
+
+                else
+                    unimportant (String.fromChar c)
+            )
+            (String.toList word)
+        )
 
 
 viewCharacter : Model -> Int -> Char -> Html Msg

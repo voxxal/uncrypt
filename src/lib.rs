@@ -3,8 +3,10 @@
 pub mod api;
 pub mod auth;
 pub mod error;
+pub mod exp;
 pub mod models;
 pub mod schema;
+pub mod util;
 
 use axum::Router;
 use axum_extra::routing::SpaRouter;

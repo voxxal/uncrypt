@@ -13,7 +13,7 @@ use crate::{
     error::{AppError, AppResult},
     models::User,
     schema::users,
-    AppState,
+    AppState, exp,
 };
 
 #[derive(Serialize)]
@@ -30,8 +30,8 @@ pub struct ProfileResponse {
 
 impl From<User> for ProfileResponse {
     fn from(user: User) -> Self {
-        let exp_through = user.experience % 1000;
-        let level = 1 + user.experience / 1000;
+        let exp_through = exp::exp_through(user.experience);
+        let level = exp::exp_to_level(user.experience);
         let exp_required = 1000;
         Self {
             id: user.id,
