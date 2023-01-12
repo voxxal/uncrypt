@@ -166,6 +166,68 @@ body.dark .level {
   display: block;
 }
 
+hr {
+  border: none;
+  border-top: 3px var(--text-dark) solid;
+}
+
+body.dark hr {
+  border-top: 3px var(--text-light) solid;
+}
+
+.play {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.play .iconContainer {
+  padding: 0.25rem;
+  border-radius: 100%;
+  height: 1.5rem;
+  width: 1.5rem;
+  border: 1px solid var(--text-light);
+  color: var(--text-light);
+  display: inline-flex;
+  margin-right: 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.play .iconContainer i {
+  font-size: 1rem;
+}
+
+body.dark .play .iconContainer {
+  border: 1px solid var(--text-dark);
+  color: var(--text-dark);
+}
+
+.puzzleType {
+  transition: background-color 200ms;
+  text-decoration: none;
+  padding: 1rem;
+  margin: 0 -1rem;
+  border-radius: 0.25rem;
+}
+
+.puzzleType h2 {
+  margin-top: 0;
+  
+}
+
+.puzzleType a {
+  display: block;
+  text-decoration: none;
+}
+
+.puzzleType:hover {
+  background-color: var(--text-dark);
+}
+
+body.dark .puzzleType:hover {
+  background-color: var(--text-light);
+}
+
 /* ARISTOCRAT */
 
 /* maybe merge into puzzle content? */
@@ -278,11 +340,10 @@ body.dark .selected {
   background-color: transparent;
 }
 
-
 .collision {
-  color: var(--dark-orange);
-  border: 1px solid var(--dark-orange) !important;
-  outline: 1px solid var(--dark-orange);
+  color: var(--orange);
+  border: 1px solid var(--orange) !important;
+  outline: 1px solid var(--orange);
 }
 
 body.dark .collision {
