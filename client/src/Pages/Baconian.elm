@@ -51,17 +51,13 @@ type alias SolveStatus =
 type alias Model =
     { ciphertext : Array String
     , puzzle : Api.Status Puzzle
-    , translation : Dict String Char
-    , reverseTrans : Dict Char (List String)
+    , translation : Array (Maybe Char)
+    , categories : ( List Char, List Char )
     , index : Int
     , letterFrequencies : Dict String Int
     , solved : SolveStatus
+    , focused : Bool
     }
-
-
-letters : List Char
-letters =
-    String.toList "abcdefghijklmnopqrstuvwxyz"
 
 
 init : Maybe String -> () -> ( Model, Effect Msg )
@@ -70,11 +66,12 @@ init token _ =
         model =
             { ciphertext = Array.empty
             , puzzle = Api.Loading
-            , translation = Dict.empty
-            , reverseTrans = Dict.empty
+            , translation = Array.empty
+            , categories = ( [], [] )
             , index = 0
             , letterFrequencies = Dict.empty
             , solved = NotChecked
+            , focused = False
             }
     in
     ( model
@@ -89,6 +86,9 @@ init token _ =
 type Msg
     = GotPuzzle (Result Api.Http.Error Puzzle)
     | KeyPress String
+    | UpdateCategory Bool String
+    | Focus
+    | Blur
     | Clicked Int
     | SubmitSolution
     | GotSubmitResponse (Result Api.Http.Error Api.Puzzle.SubmitResponse)
@@ -101,6 +101,7 @@ updateLoading msg model =
         GotPuzzle (Ok puzzle) ->
             ( { model
                 | ciphertext = puzzle.ciphertext
+                , translation = Array.repeat (Array.length puzzle.ciphertext) Nothing
                 , puzzle = Api.Success puzzle
                 , letterFrequencies = Dict.frequencies (puzzle.ciphertext |> Array.toList)
               }
@@ -131,13 +132,13 @@ updateSuccess shared msg model puzzle =
                             0
 
                 -- Dict and shift happens at the same time. This function takes in the dict to go over already answered letters
-                shiftOverAnswered : Dict String Char -> Int -> Int
+                shiftOverAnswered : Array (Maybe Char) -> Int -> Int
                 shiftOverAnswered newTranslation num =
-                    case Array.get (model.index + num) model.ciphertext of
-                        Just char ->
+                    case Array.get (model.index + num) newTranslation of
+                        Just c ->
                             Maybe.unwrap num
                                 (\_ -> shiftOverAnswered newTranslation (num + sign num))
-                                (Dict.get char newTranslation)
+                                c
 
                         Nothing ->
                             0
@@ -147,76 +148,57 @@ updateSuccess shared msg model puzzle =
                     ( model, Effect.none )
 
                 _ ->
-                    case key of
-                        "Enter" ->
-                            ( model, Effect.sendMsg SubmitSolution )
+                    if not model.focused then
+                        case key of
+                            "Enter" ->
+                                ( model, Effect.sendMsg SubmitSolution )
 
-                        "Backspace" ->
-                            case Array.get model.index model.ciphertext of
-                                Just char ->
-                                    ( { model
-                                        | index = model.index + shift 1
-                                        , translation = Dict.remove char model.translation
-                                        , reverseTrans = removeFromDictLists char model.reverseTrans
-                                      }
-                                    , Effect.none
-                                    )
+                            "Backspace" ->
+                                case Array.get model.index model.ciphertext of
+                                    Just _ ->
+                                        ( { model
+                                            | index = model.index + shift 1
+                                            , translation = Array.set model.index Nothing model.translation
+                                          }
+                                        , Effect.none
+                                        )
 
-                                Nothing ->
-                                    ( model, Effect.none )
-
-                        "ArrowLeft" ->
-                            ( { model | index = model.index + shift -1 }, Effect.none )
-
-                        "ArrowRight" ->
-                            ( { model | index = model.index + shift 1 }, Effect.none )
-
-                        any ->
-                            case String.uncons any of
-                                Just ( pressedKey, "" ) ->
-                                    let
-                                        letter =
-                                            Char.toLower pressedKey
-                                    in
-                                    if Char.isAlpha pressedKey then
-                                        case Array.get model.index model.ciphertext of
-                                            Just char ->
-                                                let
-                                                    maybeOldChar =
-                                                        Dict.get char model.translation
-
-                                                    newTranslation =
-                                                        Dict.insert char letter model.translation
-                                                in
-                                                ( { model
-                                                    | index = model.index + shiftOverAnswered newTranslation 1
-                                                    , translation = newTranslation
-                                                    , reverseTrans =
-                                                        model.reverseTrans
-                                                            |> (case maybeOldChar of
-                                                                    Just _ ->
-                                                                        removeFromDictLists char
-
-                                                                    Nothing ->
-                                                                        identity
-                                                               )
-                                                            |> Dict.insertDedupe
-                                                                (++)
-                                                                letter
-                                                                [ char ]
-                                                    , solved = NotChecked
-                                                  }
-                                                , Effect.none
-                                                )
-
-                                            _ ->
-                                                ( model, Effect.none )
-
-                                    else
+                                    Nothing ->
                                         ( model, Effect.none )
 
-                                _ ->
-                                    ( model, Effect.none )
+                            "ArrowLeft" ->
+                                ( { model | index = model.index + shift -1 }, Effect.none )
+
+                            "ArrowRight" ->
+                                ( { model | index = model.index + shift 1 }, Effect.none )
+
+                            any ->
+                                case String.uncons any of
+                                    Just ( pressedKey, "" ) ->
+                                        let
+                                            letter =
+                                                Char.toLower pressedKey
+
+                                            newTranslation =
+                                                Array.set model.index (Just letter) model.translation
+                                        in
+                                        if Char.isAlpha pressedKey then
+                                            ( { model
+                                                | index = model.index + shiftOverAnswered newTranslation 1
+                                                , translation = newTranslation
+                                                , solved = NotChecked
+                                              }
+                                            , Effect.none
+                                            )
+
+                                        else
+                                            ( model, Effect.none )
+
+                                    _ ->
+                                        ( model, Effect.none )
+
+                    else
+                        ( model, Effect.none )
 
         Clicked index ->
             ( { model | index = index }, Effect.none )
@@ -231,7 +213,7 @@ updateSuccess shared msg model puzzle =
                     , Api.Baconian.submit shared.token
                         { id = puzzle.id
                         , message =
-                            Array.map (\c -> Dict.get c model.translation |> Maybe.withDefault ' ') model.ciphertext
+                            Array.map (\c -> Maybe.withDefault ' ' c) model.translation
                                 |> Array.toList
                                 |> String.fromList
                         , sig = puzzle.sig
@@ -263,6 +245,30 @@ updateSuccess shared msg model puzzle =
         TryAnother ->
             init shared.token ()
 
+        UpdateCategory which input ->
+            let
+                newCategories =
+                    if which then
+                        Tuple.mapSecond (\_ -> input |> String.toList) model.categories
+
+                    else
+                        Tuple.mapFirst (\_ -> input |> String.toList) model.categories
+
+                frequencies =
+                    Dict.frequencies
+                        (model.ciphertext
+                            |> Array.toList
+                            |> List.map (replaceWithCategories newCategories)
+                        )
+            in
+            ( { model | categories = newCategories, letterFrequencies = frequencies }, Effect.none )
+
+        Focus ->
+            ( { model | focused = True }, Effect.none )
+
+        Blur ->
+            ( { model | focused = False }, Effect.none )
+
         _ ->
             ( model, Effect.none )
 
@@ -290,19 +296,6 @@ sign num =
 
     else
         0
-
-
-removeFromDictLists : String -> Dict Char (List String) -> Dict Char (List String)
-removeFromDictLists char =
-    Dict.map
-        (\_ v ->
-            if List.member char v then
-                List.filter (\c -> c /= char) v
-
-            else
-                v
-        )
-        >> Dict.filter (\_ v -> not (List.isEmpty v))
 
 
 
@@ -337,19 +330,7 @@ viewLoading =
 
 viewSuccess : Model -> Puzzle -> List (Html Msg)
 viewSuccess model puzzle =
-    let
-        remainingCharacters =
-            List.filterMap
-                (\c ->
-                    if Dict.member c model.reverseTrans then
-                        Nothing
-
-                    else
-                        Just (c |> Char.toUpper |> String.fromChar)
-                )
-                letters
-    in
-    [ div [ Attr.class "Baconian-content" ]
+    [ div [ Attr.class "baconian-content" ]
         [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", isSolved model.solved ) ] ]
             (if Array.isEmpty model.ciphertext then
                 [ text "Loading..." ]
@@ -361,14 +342,25 @@ viewSuccess model puzzle =
                 ]
             )
         , div [ Attr.class "controls" ]
-            [ h2 [ Attr.class "label" ] [ text "REMAINING LETTERS" ]
+            [ h2 [ Attr.class "label" ] [ text "CATEGORIES" ]
             , div [ Attr.class "remainingLetters" ]
-                (List.map
-                    (\c ->
-                        span [ Attr.class "remainingLetter" ] [ text c ]
-                    )
-                    remainingCharacters
-                )
+                [ textarea
+                    [ Attr.class "input"
+                    , Events.onInput (UpdateCategory False)
+                    , Events.onFocus Focus
+                    , Events.onBlur Blur
+                    , Attr.value (Tuple.first model.categories |> String.fromList)
+                    ]
+                    []
+                , textarea
+                    [ Attr.class "input"
+                    , Events.onInput (UpdateCategory True)
+                    , Events.onFocus Focus
+                    , Events.onBlur Blur
+                    , Attr.value (Tuple.second model.categories |> String.fromList)
+                    ]
+                    []
+                ]
             , button
                 [ Attr.classList
                     [ ( "button", True )
@@ -404,7 +396,7 @@ viewFailure err =
                 Api.Http.BadBody message ->
                     "Bad Body: " ++ message
     in
-    [ div [ Attr.class "Baconian-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
+    [ div [ Attr.class "baconian-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
 
 
 view : Model -> View Msg
@@ -478,22 +470,30 @@ viewModalBox model puzzle =
 
 viewWord : Model -> Int -> String -> Html Msg
 viewWord model index word =
+    let replaceWithModelC = replaceWithCategories model.categories in
     div [ Attr.class "word" ]
         [ character
-            { translatedChar = Maybe.unwrap ' ' Char.toUpper (Dict.get word model.translation)
-            , untranslated = word
-            , frequency = Maybe.withDefault 0 (Dict.get word model.letterFrequencies)
+            { translatedChar = Maybe.unwrap ' ' Char.toUpper (Maybe.join (Array.get index model.translation))
+            , untranslated = replaceWithModelC word
+            , frequency = Maybe.withDefault 0 (Dict.get (replaceWithModelC word) model.letterFrequencies)
             , selected = model.index == index
-            , softSelected = Just word == Array.get model.index model.ciphertext
-            , collision =
-                case Dict.get word model.translation of
-                    Just decoded ->
-                        Maybe.unwrap False
-                            (\l -> List.length l > 1)
-                            (Dict.get decoded model.reverseTrans)
-
-                    Nothing ->
-                        False
+            , softSelected = Just (replaceWithModelC word) == Maybe.map replaceWithModelC (Array.get model.index model.ciphertext)
+            , collision = False
             , onClick = Clicked index
             }
         ]
+
+
+replaceWithCategories : ( List Char, List Char ) -> String -> String
+replaceWithCategories ( fst, snd ) =
+    String.map
+        (\c ->
+            if List.member c fst then
+                'A'
+
+            else if List.member c snd then
+                'B'
+
+            else
+                c
+        )

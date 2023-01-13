@@ -493,7 +493,7 @@ viewModalBox model puzzle =
                                 ]
 
                         Nothing ->
-                            text ""
+                            div [Attr.class "levelInfo" ] []
                     , button [ Attr.class "button submitButton", Events.onClick TryAnother ] [ text "Try another" ]
                     ]
                 ]

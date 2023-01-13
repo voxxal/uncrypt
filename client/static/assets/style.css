@@ -9,8 +9,8 @@
   --bg-dark: rgb(23, 28, 34);
   --text-light: rgb(49, 63, 78);
   --text-dark: rgb(223, 230, 238);
-  --light-text-light: rgb(116, 116, 122);
-  --light-text-dark: rgb(177, 176, 192);
+  --light-text-light: rgb(100, 100, 118);
+  --light-text-dark: rgb(161, 159, 193);
   --base-shadow-light: 0px 0.4px 0.9px rgba(0, 0, 0, 0.052),
     0px 1px 2.5px rgba(0, 0, 0, 0.075), 0px 2.4px 6px rgba(0, 0, 0, 0.098),
     0px 8px 20px rgba(0, 0, 0, 0.15);
@@ -316,24 +316,26 @@ body.dark .attribution {
 }
 
 .softSelected {
-  background-color: rgb(255, 255, 200);
+  background-color: var(--text-dark);
 }
 
 body.dark .softSelected {
-  background-color: rgb(72, 72, 42);
+  background-color: var(--text-light);
 }
 
-.puzzle.solved .softSelected {
+.puzzle.solved .softSelected,
+.puzzle.solved .selected {
   background-color: transparent;
 }
 
 .selected {
-  background-color: rgb(255, 255, 0) !important;
+  background-color: var(--light-text-dark) !important;
+  color: var(--bg-dark);
   cursor: default !important;
 }
 
 body.dark .selected {
-  background-color: rgb(96, 72, 10) !important;
+  background-color: var(--light-text-light) !important;
 }
 
 .puzzle.solved .selected {

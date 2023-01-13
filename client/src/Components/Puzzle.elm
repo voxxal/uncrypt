@@ -29,7 +29,11 @@ character { translatedChar, untranslated, frequency, selected, softSelected, col
             ]
             [ text (String.fromChar translatedChar) ]
         , span [ Attr.class "untranslatedChar" ] [ text untranslated ]
-        , span [ Attr.class "frequency" ] [ text (String.fromInt frequency) ]
+        , if frequency /= -1 then
+            span [ Attr.class "frequency" ] [ text (String.fromInt frequency) ]
+
+          else
+            text ""
         ]
 
 
