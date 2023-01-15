@@ -20,7 +20,7 @@ use crate::{
     exp::ExpSource,
     models::User,
     util::{generate_sig, get_timestamp, random, verify_solution},
-    AppState,
+    AppState, api::{NewSolve, PuzzleType},
 };
 use anyhow::anyhow;
 
@@ -158,7 +158,7 @@ async fn submit(
     auth: Option<Auth>,
     Json(req): Json<SubmitRequest>,
 ) -> AppResult<Json<SubmitResponse>> {
-    use crate::schema::{messages, users};
+    use crate::schema::{messages, users, solves};
     let conn = &mut state.db_pool.get().await?;
 
     if verify_solution(
@@ -192,6 +192,17 @@ async fn submit(
                 .get_result::<User>(conn)
                 .await?;
 
+            diesel::insert_into(solves::table)
+                .values(NewSolve::new(
+                    PuzzleType::Baconian,
+                    req.id,
+                    &user,
+                    time_taken as i32,
+                    sum,
+                ))
+                .execute(conn)
+                .await?;
+
             return Ok(Json(SubmitResponse {
                 plaintext: messages::table
                     .select(messages::message)
@@ -201,6 +212,7 @@ async fn submit(
                 time_taken,
                 profile: Some(ProfileResponse::from(user)),
                 exp_sources: Some(exp_sources),
+                total_exp: Some(sum),
             }));
         } else {
             return Ok(Json(SubmitResponse {
@@ -212,6 +224,7 @@ async fn submit(
                 time_taken,
                 profile: None,
                 exp_sources: None,
+                total_exp: None,
             }));
         }
     }

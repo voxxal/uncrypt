@@ -1,7 +1,5 @@
 use std::env;
 
-use anyhow::Result;
-use axum::Extension;
 use cryptopuz::{establish_connection, AppState, auth};
 
 #[tokio::main]

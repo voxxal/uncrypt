@@ -243,6 +243,11 @@ body.dark .puzzleType:hover {
   margin: 2rem 3rem;
 }
 
+textarea {
+  resize: none;
+  width: 100%;
+}
+
 .puzzle {
   font-size: 1.65rem;
 }
@@ -325,21 +330,17 @@ body.dark .softSelected {
 
 .puzzle.solved .softSelected,
 .puzzle.solved .selected {
-  background-color: transparent;
+  background-color: transparent !important;
 }
 
 .selected {
-  background-color: var(--light-text-dark) !important;
+  background-color: var(--light-text-dark);
   color: var(--bg-dark);
-  cursor: default !important;
+  cursor: default;
 }
 
 body.dark .selected {
-  background-color: var(--light-text-light) !important;
-}
-
-.puzzle.solved .selected {
-  background-color: transparent;
+  background-color: var(--light-text-light);
 }
 
 .collision {
@@ -462,9 +463,17 @@ body.dark .modalContent {
   font-weight: 700;
 }
 
+.modalContent .totalExp {
+  margin-top: auto;
+  margin-bottom: 0.75rem;
+}
+
+.modalContent .totalExp .expSource {
+  font-size: 1.75rem;
+}
+
 .modalContent .levelInfo {
   display: flex;
-  margin-top: auto;
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
 }

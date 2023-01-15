@@ -11,16 +11,19 @@ type alias SubmitResponse =
     , timeTaken : Int
     , profile : Maybe Auth.User.User
     , expSources : Maybe (List ExpSource)
+    , totalExp : Maybe Int
     }
 
 
 submitResponseDecoder : D.Decoder SubmitResponse
 submitResponseDecoder =
-    D.map4 SubmitResponse
+    D.map5 SubmitResponse
         (D.field "plaintext" D.string)
         (D.field "timeTaken" D.int)
         (D.maybe (D.field "profile" Auth.User.decoder))
         (D.maybe (D.field "expSources" (D.list expSourceDecoder)))
+        (D.maybe (D.field "totalExp" (D.int)))
+
 
 
 type alias ExpSource =
@@ -37,10 +40,3 @@ expSourceDecoder =
         (D.field "amount" D.string)
         (D.field "special" D.bool)
 
-
-viewExpSource : ExpSource -> Html msg
-viewExpSource source =
-    div [ Attr.classList [ ( "expSource", True ), ( "special", source.special ) ] ]
-        [ span [ Attr.class "expSourceName" ] [ text source.name ]
-        , span [ Attr.class "expSourceAmount" ] [ text source.amount ]
-        ]

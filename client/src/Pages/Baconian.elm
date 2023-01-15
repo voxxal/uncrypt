@@ -6,7 +6,7 @@ import Api.Http
 import Api.Puzzle
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
-import Components.Puzzle exposing (SolveStatus(..), character, unimportant)
+import Components.Puzzle exposing (SolveStatus(..), character, modalBox)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import Effect exposing (Effect)
@@ -332,15 +332,10 @@ viewSuccess : Model -> Puzzle -> List (Html Msg)
 viewSuccess model puzzle =
     [ div [ Attr.class "baconian-content" ]
         [ div [ Attr.classList [ ( "puzzle", True ), ( "solved", isSolved model.solved ) ] ]
-            (if Array.isEmpty model.ciphertext then
-                [ text "Loading..." ]
-
-             else
-                [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
-                , div [] (List.indexedMap (\i word -> viewWord model i word) (model.ciphertext |> Array.toList))
-                , span [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
-                ]
-            )
+            [ h2 [ Attr.class "label" ] [ text "PUZZLE" ]
+            , div [] [ viewPuzzle model model.ciphertext ]
+            , span [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
+            ]
         , div [ Attr.class "controls" ]
             [ h2 [ Attr.class "label" ] [ text "CATEGORIES" ]
             , div [ Attr.class "remainingLetters" ]
@@ -350,6 +345,8 @@ viewSuccess model puzzle =
                     , Events.onFocus Focus
                     , Events.onBlur Blur
                     , Attr.value (Tuple.first model.categories |> String.fromList)
+                    , Attr.rows 1
+                    , Attr.placeholder "Group A"
                     ]
                     []
                 , textarea
@@ -358,6 +355,8 @@ viewSuccess model puzzle =
                     , Events.onFocus Focus
                     , Events.onBlur Blur
                     , Attr.value (Tuple.second model.categories |> String.fromList)
+                    , Attr.rows 1
+                    , Attr.placeholder "Group B"
                     ]
                     []
                 ]
@@ -372,7 +371,12 @@ viewSuccess model puzzle =
                 [ text "Check" ]
             ]
         ]
-    , viewModalBox model puzzle
+    , case model.solved of
+        Solved info ->
+            modalBox info puzzle.attribution TryAnother
+
+        _ ->
+            text ""
     ]
 
 
@@ -415,73 +419,28 @@ view model =
     }
 
 
-viewModalBox : Model -> Puzzle -> Html Msg
-viewModalBox model puzzle =
-    case model.solved of
-        Solved info ->
-            div [ Attr.class "modal" ]
-                [ div [ Attr.class "modalContent" ]
-                    [ h1 [] [ text "Congratulations!" ]
-                    , div []
-                        [ text "You completed the Baconian in "
-                        , strong [] [ text (String.fromFloat (toFloat info.timeTaken / 1000)) ]
-                        , text " seconds!"
-                        ]
-                    , div [ Attr.class "messageContainer" ]
-                        [ div [ Attr.class "message" ] [ text ("\"" ++ info.plaintext ++ "\"") ]
-                        , div [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
-                        ]
-                    , case info.expSources of
-                        Just expSources ->
-                            div [ Attr.class "expSources" ] (List.map Api.Puzzle.viewExpSource expSources)
-
-                        Nothing ->
-                            text ""
-
-                    -- TODO we probably want a total exp gained
-                    , case info.profile of
-                        Just profile ->
-                            div [ Attr.class "levelInfo" ]
-                                [ span [ Attr.class "level" ] [ text (String.fromInt profile.level) ]
-                                , div [ Attr.class "levelContainer" ]
-                                    [ div [ Attr.class "levelBar" ]
-                                        [ div [ Attr.class "barBg" ] []
-                                        , div
-                                            [ Attr.class "barFg"
-                                            , Attr.style "width" (String.fromFloat (toFloat profile.expThrough / toFloat profile.expRequired * 100) ++ "%")
-                                            ]
-                                            []
-                                        ]
-                                    , div [ Attr.class "levelProgress" ]
-                                        [ text (String.fromInt profile.expThrough ++ "/" ++ String.fromInt profile.expRequired)
-                                        ]
-                                    ]
-                                ]
-
-                        Nothing ->
-                            text ""
-                    , button [ Attr.class "button submitButton", Events.onClick TryAnother ] [ text "Try another" ]
-                    ]
-                ]
-
-        _ ->
-            text ""
-
-
-viewWord : Model -> Int -> String -> Html Msg
-viewWord model index word =
-    let replaceWithModelC = replaceWithCategories model.categories in
+viewPuzzle : Model -> Array String -> Html Msg
+viewPuzzle model ciphertext =
+    let
+        replaceWithModelC =
+            replaceWithCategories model.categories
+    in
     div [ Attr.class "word" ]
-        [ character
-            { translatedChar = Maybe.unwrap ' ' Char.toUpper (Maybe.join (Array.get index model.translation))
-            , untranslated = replaceWithModelC word
-            , frequency = Maybe.withDefault 0 (Dict.get (replaceWithModelC word) model.letterFrequencies)
-            , selected = model.index == index
-            , softSelected = Just (replaceWithModelC word) == Maybe.map replaceWithModelC (Array.get model.index model.ciphertext)
-            , collision = False
-            , onClick = Clicked index
-            }
-        ]
+        (Array.indexedMap
+            (\index word ->
+                character
+                    { translatedChar = Maybe.unwrap ' ' Char.toUpper (Maybe.join (Array.get index model.translation))
+                    , untranslated = replaceWithModelC word
+                    , frequency = Maybe.withDefault 0 (Dict.get (replaceWithModelC word) model.letterFrequencies)
+                    , selected = model.index == index
+                    , softSelected = Just (replaceWithModelC word) == Maybe.map replaceWithModelC (Array.get model.index model.ciphertext)
+                    , collision = False
+                    , onClick = Clicked index
+                    }
+            )
+            ciphertext
+            |> Array.toList
+        )
 
 
 replaceWithCategories : ( List Char, List Char ) -> String -> String

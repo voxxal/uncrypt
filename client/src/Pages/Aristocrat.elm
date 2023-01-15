@@ -6,7 +6,7 @@ import Api.Http
 import Api.Puzzle
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
-import Components.Puzzle exposing (SolveStatus(..), character, unimportant)
+import Components.Puzzle exposing (SolveStatus(..), character, modalBox, unimportant)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import Effect exposing (Effect)
@@ -406,7 +406,12 @@ viewSuccess model puzzle =
                 [ text "Check" ]
             ]
         ]
-    , viewModalBox model puzzle
+    , case model.solved of
+        Solved info ->
+            modalBox info puzzle.attribution TryAnother
+
+        _ ->
+            text ""
     ]
 
 
@@ -447,59 +452,6 @@ view model =
             Api.Failure err ->
                 viewFailure err
     }
-
-
-viewModalBox : Model -> Puzzle -> Html Msg
-viewModalBox model puzzle =
-    case model.solved of
-        Solved info ->
-            div [ Attr.class "modal" ]
-                [ div [ Attr.class "modalContent" ]
-                    [ h1 [] [ text "Congratulations!" ]
-                    , div []
-                        [ text "You completed the Aristocrat in "
-                        , strong [] [ text (String.fromFloat (toFloat info.timeTaken / 1000)) ]
-                        , text " seconds!"
-                        ]
-                    , div [ Attr.class "messageContainer" ]
-                        [ div [ Attr.class "message" ] [ text ("\"" ++ info.plaintext ++ "\"") ]
-                        , div [ Attr.class "attribution" ] [ text ("- " ++ puzzle.attribution) ]
-                        ]
-                    , case info.expSources of
-                        Just expSources ->
-                            div [ Attr.class "expSources" ] (List.map Api.Puzzle.viewExpSource expSources)
-
-                        Nothing ->
-                            text ""
-
-                    -- TODO we probably want a total exp gained
-                    , case info.profile of
-                        Just profile ->
-                            div [ Attr.class "levelInfo" ]
-                                [ span [ Attr.class "level" ] [ text (String.fromInt profile.level) ]
-                                , div [ Attr.class "levelContainer" ]
-                                    [ div [ Attr.class "levelBar" ]
-                                        [ div [ Attr.class "barBg" ] []
-                                        , div
-                                            [ Attr.class "barFg"
-                                            , Attr.style "width" (String.fromFloat (toFloat profile.expThrough / toFloat profile.expRequired * 100) ++ "%")
-                                            ]
-                                            []
-                                        ]
-                                    , div [ Attr.class "levelProgress" ]
-                                        [ text (String.fromInt profile.expThrough ++ "/" ++ String.fromInt profile.expRequired)
-                                        ]
-                                    ]
-                                ]
-
-                        Nothing ->
-                            div [Attr.class "levelInfo" ] []
-                    , button [ Attr.class "button submitButton", Events.onClick TryAnother ] [ text "Try another" ]
-                    ]
-                ]
-
-        _ ->
-            text ""
 
 
 viewWord : Model -> Int -> String -> Html Msg

@@ -4,7 +4,19 @@ diesel::table! {
     messages (id) {
         id -> Int4,
         message -> Varchar,
+        patristocrat_hint -> Nullable<Varchar>,
         attribution -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    solves (id) {
+        id -> Int4,
+        puzzle_type -> Int2,
+        message_id -> Int4,
+        solver -> Varchar,
+        time_taken -> Int4,
+        exp_gained -> Int4,
     }
 }
 
@@ -19,7 +31,11 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(solves -> messages (message_id));
+diesel::joinable!(solves -> users (solver));
+
 diesel::allow_tables_to_appear_in_same_query!(
     messages,
+    solves,
     users,
 );

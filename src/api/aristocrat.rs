@@ -13,6 +13,7 @@ use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    api::{NewSolve, PuzzleType},
     auth::Auth,
     error::{AppError, AppResult},
     exp::ExpSource,
@@ -69,7 +70,6 @@ async fn new(State(state): State<AppState>, auth: Option<Auth>) -> AppResult<Jso
 
     let timestamp = get_timestamp();
 
-
     Ok(Json(NewResponse {
         id: msg_id,
         ciphertext,
@@ -87,13 +87,12 @@ struct SubmitRequest {
     timestamp: u128,
 }
 
-
 async fn submit(
     State(state): State<AppState>,
     auth: Option<Auth>,
     Json(req): Json<SubmitRequest>,
 ) -> AppResult<Json<SubmitResponse>> {
-    use crate::schema::{messages, users};
+    use crate::schema::{messages, solves, users};
     let conn = &mut state.db_pool.get().await?;
 
     if verify_solution(
@@ -126,8 +125,18 @@ async fn submit(
                     users::solved.eq(users::solved + 1),
                 ))
                 .get_result::<User>(conn)
-                .await
-                .optional()?;
+                .await?;
+
+            diesel::insert_into(solves::table)
+                .values(NewSolve::new(
+                    PuzzleType::Aristocrat,
+                    req.id,
+                    &user,
+                    time_taken as i32,
+                    sum,
+                ))
+                .execute(conn)
+                .await?;
 
             return Ok(Json(SubmitResponse {
                 plaintext: messages::table
@@ -136,8 +145,9 @@ async fn submit(
                     .first::<String>(conn)
                     .await?,
                 time_taken,
-                profile: user.map(ProfileResponse::from),
+                profile: Some(ProfileResponse::from(user)),
                 exp_sources: Some(exp_sources),
+                total_exp: Some(sum),
             }));
         } else {
             return Ok(Json(SubmitResponse {
@@ -149,6 +159,7 @@ async fn submit(
                 time_taken,
                 profile: None,
                 exp_sources: None,
+                total_exp: None,
             }));
         }
     }
