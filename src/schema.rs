@@ -13,6 +13,7 @@ diesel::table! {
     solves (id) {
         id -> Int4,
         puzzle_type -> Int2,
+        solved_at -> Timestamptz,
         message_id -> Int4,
         solver -> Varchar,
         time_taken -> Int4,
@@ -26,6 +27,7 @@ diesel::table! {
         username -> Varchar,
         email -> Nullable<Varchar>,
         password_hash -> Varchar,
+        created_at -> Timestamptz,
         solved -> Int4,
         experience -> Int4,
     }

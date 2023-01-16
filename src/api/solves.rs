@@ -14,7 +14,7 @@ use crate::{
     auth::Auth,
     error::{AppError, AppResult},
     models::{Message, Solve, User},
-    schema::{messages, users},
+    schema::{messages, solves, users},
     AppState,
 };
 
@@ -26,6 +26,7 @@ pub struct SolveResponse {
     pub puzzle_type: PuzzleType,
     pub plaintext: String,
     pub attribution: String,
+    pub solved_at: String,
     pub solver: String,
     pub time_taken: i32,
     pub exp_gained: i32,
@@ -37,8 +38,10 @@ impl SolveResponse {
             puzzle_type: PuzzleType::try_from(solve.puzzle_type)?,
             plaintext: message.message.clone(),
             attribution: message
-                .attribution.clone()
+                .attribution
+                .clone()
                 .unwrap_or(String::from("Unknown")),
+            solved_at: format!("{}", solve.solved_at.format("%F %I:%M %P")),
             solver: user.username.clone(),
             time_taken: solve.time_taken,
             exp_gained: solve.exp_gained,
@@ -67,6 +70,7 @@ async fn me(
                     .flatten()
                     .unwrap_or(10),
             )
+            .order(solves::id.desc())
             .load::<Solve>(conn)
             .await?;
 
@@ -105,6 +109,7 @@ async fn solves(
                     .flatten()
                     .unwrap_or(10),
             )
+            .order(solves::id.desc())
             .load::<Solve>(conn)
             .await?;
 

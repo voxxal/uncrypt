@@ -92,7 +92,7 @@ viewProfileSummary shared =
                 [ text "Login" ]
 
         Just user ->
-            div [ Attr.class "profile" ]
+            a [ Attr.class "profile", Attr.href "/profile" ]
                 [ span [ Attr.class "level" ] [ text (String.fromInt user.level) ]
                 , span [] [ text user.username ]
                 ]

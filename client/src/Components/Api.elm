@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes as Attr
 
 
-failure : Api.Http.Error -> Html msg
+failure : Api.Http.Error -> List (Html msg)
 failure err =
     let
         errMsg =
@@ -25,4 +25,4 @@ failure err =
                 Api.Http.BadBody message ->
                     "Bad Body: " ++ message
     in
-    div [ Attr.class "text-content" ] [ h2 [] [ text "Something went wrong..." ], text errMsg ]
+    [ h2 [] [ text "Something went wrong..." ], text errMsg ]

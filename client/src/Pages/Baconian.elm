@@ -391,7 +391,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                [ Components.Api.failure err ]
+                [ div [ Attr.class "text-content" ]  (Components.Api.failure err) ]
     }
 
 

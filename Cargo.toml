@@ -12,8 +12,9 @@ axum = { version = "0.6.1", features = ["macros", "headers"] }
 axum-extra = { version = "0.4.2", features = ["spa"] }
 base64 = "0.20.0"
 bitvec = "1.0.1"
+chrono = "0.4.23"
 deadpool = "0.9.5"
-diesel = { version = "2.0.2", features = ["postgres"] }
+diesel = { version = "2.0.2", features = ["postgres", "chrono"] }
 diesel-async = { version = "0.1.1", features = ["deadpool", "postgres"] }
 dotenvy = "0.15.6"
 futures = "0.3.25"

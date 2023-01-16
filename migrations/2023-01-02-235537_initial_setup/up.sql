@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users(
     username VARCHAR(32) NOT NULL UNIQUE,
     email VARCHAR(127),
     password_hash VARCHAR(127) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     solved INTEGER NOT NULL DEFAULT 0,
     experience INTEGER NOT NULL DEFAULT 0
 );
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users(
 CREATE TABLE IF NOT EXISTS solves(
     id SERIAL PRIMARY KEY,
     puzzle_type SMALLINT NOT NULL,
+    solved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     message_id INT NOT NULL REFERENCES messages(id),
     solver VARCHAR(24) NOT NULL REFERENCES users(id),
     time_taken INT NOT NULL,

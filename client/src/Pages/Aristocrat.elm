@@ -6,6 +6,7 @@ import Api.Http
 import Api.Puzzle
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
+import Components.Api
 import Components.Puzzle exposing (SolveStatus(..), character, modalBox, unimportant)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
@@ -21,7 +22,6 @@ import Route exposing (Route)
 import Shared
 import Shared.Msg
 import View exposing (View)
-import Components.Api
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -426,7 +426,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                [Components.Api.failure err]
+                [ div [ Attr.class "text-content" ]  (Components.Api.failure err) ]
     }
 
 

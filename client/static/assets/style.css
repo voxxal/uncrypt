@@ -124,6 +124,8 @@ body.dark .options:hover {
 }
 
 .profile {
+  color: inherit;
+  text-decoration: none;
   transition: 200ms background-color;
   padding: 0.5rem;
   border-radius: 0.25rem;
@@ -628,16 +630,16 @@ body.dark .errorText {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: 0.6rem 0;
 }
 
 .puzzleInfo {
-  flex-basis: 35%;
+  flex-basis: 50%;
 }
-
 
 .puzzleInfo .puzzleType {
   font-weight: 700;
-  margin: 0.6rem 0;
+  margin-bottom: 0.6rem;
 }
 
 .solveInfo {
@@ -647,4 +649,13 @@ body.dark .errorText {
 .solveInfo .expGained {
   font-weight: 600;
   font-size: 2rem;
+}
+
+.solveInfo .solvedAt {
+  color: var(--light-text-light);
+  font-size: 0.75rem;
+}
+
+body.dark .solveInfo .solvedAt {
+  color: var(--light-text-dark);
 }

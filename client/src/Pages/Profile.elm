@@ -1,4 +1,4 @@
-module Pages.Profile exposing (Model, Msg, page)
+module Pages.Profile exposing (Model, Msg(..), page, update, view)
 
 import Api
 import Api.Http
@@ -95,7 +95,7 @@ update msg model =
             ( { model | profile = Api.Success profile }, Effect.none )
 
         GotProfile (Err err) ->
-            ( { model | solves = Api.Failure err }, Effect.none )
+            ( { model | profile = Api.Failure err }, Effect.none )
 
         GotSolves (Ok solves) ->
             ( { model | solves = Api.Success solves }, Effect.none )
@@ -166,7 +166,7 @@ viewProfileInfo model =
                 ]
 
         Api.Failure err ->
-            Components.Api.failure err
+            div [] (Components.Api.failure err)
 
 
 viewSolves : Model -> Html Msg
@@ -183,7 +183,12 @@ viewSolves model =
             div [ Attr.class "solves" ] (List.map viewSolve solves)
 
         Api.Failure err ->
-            Components.Api.failure err
+            case model.profile of
+                Api.Success _ ->
+                    div [] (Components.Api.failure err)
+
+                _ ->
+                    text ""
 
 
 viewSolve : Api.Profile.Solve -> Html Msg
@@ -198,7 +203,8 @@ viewSolve solve =
             , div [ Attr.class "solveInfo" ]
                 [ div [ Attr.class "expGained" ] [ text ("+" ++ String.fromInt solve.expGained) ]
                 , div [ Attr.class "timeTaken" ] [ text ("Solve Time: " ++ String.fromFloat (toFloat solve.timeTaken / 1000) ++ "s") ]
+                , div [ Attr.class "solvedAt" ] [ text solve.solvedAt ]
                 ]
             ]
-        , hr [ Attr.class "thin"] []
+        , hr [ Attr.class "thin" ] []
         ]

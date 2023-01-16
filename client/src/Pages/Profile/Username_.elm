@@ -1,21 +1,25 @@
 module Pages.Profile.Username_ exposing (Model, Msg, page)
 
+import Api
 import Effect exposing (Effect)
-import Route exposing (Route)
 import Html
+import Layouts
 import Page exposing (Page)
+import Pages.Profile exposing (Msg(..))
+import Route exposing (Route)
 import Shared
 import View exposing (View)
-
+import Api.Profile
 
 page : Shared.Model -> Route { username : String } -> Page Model Msg
 page shared route =
     Page.new
-        { init = init
+        { init = init route.params.username
         , update = update
         , subscriptions = subscriptions
         , view = view
         }
+        |> Page.withLayout (\_ -> Layouts.Navbar { navbar = {} })
 
 
 
@@ -23,13 +27,13 @@ page shared route =
 
 
 type alias Model =
-    {}
+    Pages.Profile.Model
 
 
-init : () -> ( Model, Effect Msg )
-init () =
-    ( {}
-    , Effect.none
+init : String -> () -> ( Model, Effect Msg )
+init username () =
+    ( { profile = Api.Loading, solves = Api.Loading }
+    , Effect.batch [ Api.Profile.profile username GotProfile, Api.Profile.solves username GotSolves] 
     )
 
 
@@ -37,17 +41,11 @@ init () =
 -- UPDATE
 
 
-type Msg
-    = ExampleMsgReplaceMe
+type alias Msg = Pages.Profile.Msg
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
-update msg model =
-    case msg of
-        ExampleMsgReplaceMe ->
-            ( model
-            , Effect.none
-            )
+update = Pages.Profile.update
 
 
 
@@ -64,7 +62,4 @@ subscriptions model =
 
 
 view : Model -> View Msg
-view model =
-    { title = "Pages.Profile.Username_"
-    , body = [ Html.text "/profile/:username" ]
-    }
+view = Pages.Profile.view

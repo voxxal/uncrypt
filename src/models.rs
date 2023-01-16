@@ -1,4 +1,5 @@
 use crate::schema::{messages, solves, users};
+use chrono::{DateTime, Local};
 use diesel::prelude::*;
 
 #[derive(Identifiable, Queryable, Debug)]
@@ -18,6 +19,7 @@ pub struct User {
     pub username: String,
     pub email: Option<String>,
     pub password_hash: String,
+    pub created_at: DateTime<Local>,
     pub solved: i32,
     pub experience: i32,
 }
@@ -27,6 +29,7 @@ pub struct User {
 pub struct Solve {
     pub id: i32,
     pub puzzle_type: i16,
+    pub solved_at: DateTime<Local>,
     pub message_id: i32,
     pub solver: String,
     pub time_taken: i32,
