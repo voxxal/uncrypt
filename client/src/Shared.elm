@@ -23,6 +23,7 @@ import Settings
 import Settings.Theme
 import Shared.Model
 import Shared.Msg exposing (Msg(..))
+import Api.Profile
 
 
 
@@ -67,7 +68,7 @@ init flagsResult route =
     ( { settings = settings, token = flags.token, user = Nothing }
     , Effect.batch
         [ Effect.sendCmd (Settings.Theme.updateTheme (Settings.Theme.encoder settings.theme))
-        , Maybe.withDefault Effect.none (Maybe.map2 Api.Auth.profile flags.token (Just GotProfile))
+        , Maybe.withDefault Effect.none (Maybe.map2 Api.Profile.myProfile flags.token (Just GotProfile))
         ]
     )
 
@@ -114,7 +115,7 @@ update route msg model =
                     , hash = Nothing
                     }
                 , Effect.save "token" (E.string token)
-                , Api.Auth.profile token GotProfile
+                , Api.Profile.myProfile token GotProfile
                 ]
             )
 

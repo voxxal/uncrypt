@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap");
 
 :root {
   --green: rgb(84, 161, 40);
@@ -175,6 +175,10 @@ body.dark hr {
   border-top: 3px var(--text-light) solid;
 }
 
+hr.thin {
+  border-top-width: 1px !important;
+}
+
 .play {
   font-size: 1.5rem;
   font-weight: 700;
@@ -202,7 +206,7 @@ body.dark .play .iconContainer {
   color: var(--text-dark);
 }
 
-.puzzleType {
+.puzzleTypeInfo {
   transition: background-color 200ms;
   text-decoration: none;
   padding: 1rem;
@@ -210,21 +214,20 @@ body.dark .play .iconContainer {
   border-radius: 0.25rem;
 }
 
-.puzzleType h2 {
+.puzzleTypeInfo h2 {
   margin-top: 0;
-  
 }
 
-.puzzleType a {
+.puzzleTypeInfo a {
   display: block;
   text-decoration: none;
 }
 
-.puzzleType:hover {
+.puzzleTypeInfo:hover {
   background-color: var(--text-dark);
 }
 
-body.dark .puzzleType:hover {
+body.dark .puzzleTypeInfo:hover {
   background-color: var(--text-light);
 }
 
@@ -472,17 +475,20 @@ body.dark .modalContent {
   font-size: 1.75rem;
 }
 
-.modalContent .levelInfo {
+.levelInfo {
   display: flex;
-  margin-bottom: 1.5rem;
   font-size: 1.5rem;
 }
 
-.modalContent .levelContainer {
+.modalContent .levelInfo {
+  margin-bottom: 1.5rem;
+}
+
+.levelContainer {
   width: 100%;
 }
 
-.modalContent .levelBar {
+.levelBar {
   width: 100%;
   height: calc(100% - 0.75rem - 0.25rem);
   border-radius: 1rem;
@@ -490,27 +496,27 @@ body.dark .modalContent {
   background-color: var(--light-text-dark);
 }
 
-body.dark .modalContent .levelBar {
+body.dark .levelBar {
   background-color: var(--light-text-light);
 }
 
-.modalContent .barFg {
+.barFg {
   background-color: var(--text-light);
   height: 100%;
 }
 
-body.dark .modalContent .barFg {
+body.dark .barFg {
   background-color: var(--text-dark);
 }
 
-.modalContent .levelProgress {
+.levelProgress {
   color: var(--light-text-light);
   margin-top: 0.25rem;
   font-size: 0.75rem;
   text-align: left;
 }
 
-.modalContent .levelProgress {
+body.dark .levelProgress {
   color: var(--light-text-dark);
 }
 
@@ -583,4 +589,62 @@ body.dark .errorText {
 
 .registerInfoText {
   max-width: 20rem;
+}
+
+/* PROFILE */
+
+.profileInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.profileInfo h1 {
+  margin: 0;
+}
+
+.profileInfo .userSummary {
+  display: flex;
+  align-items: center;
+}
+
+.profileInfo .userSummary .level {
+  font-size: 1.5rem;
+  height: fit-content;
+  margin-right: 0.5rem;
+}
+
+.profileInfo .levelInfo {
+  height: 1.75rem;
+  width: 40%;
+}
+
+.profileInfo .levelProgress {
+  text-align: right;
+}
+
+.solve {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.puzzleInfo {
+  flex-basis: 35%;
+}
+
+
+.puzzleInfo .puzzleType {
+  font-weight: 700;
+  margin: 0.6rem 0;
+}
+
+.solveInfo {
+  text-align: right;
+}
+
+.solveInfo .expGained {
+  font-weight: 600;
+  font-size: 2rem;
 }

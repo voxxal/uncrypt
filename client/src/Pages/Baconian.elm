@@ -6,6 +6,7 @@ import Api.Http
 import Api.Puzzle
 import Array exposing (Array)
 import Browser.Events exposing (onKeyDown)
+import Components.Api
 import Components.Puzzle exposing (SolveStatus(..), character, modalBox)
 import Dict exposing (Dict)
 import Dict.Extra as Dict
@@ -13,9 +14,7 @@ import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
-import Http
 import Json.Decode as D
-import Json.Encode as E
 import Layouts
 import Maybe.Extra as Maybe
 import Page exposing (Page)
@@ -380,29 +379,6 @@ viewSuccess model puzzle =
     ]
 
 
-viewFailure : Api.Http.Error -> List (Html Msg)
-viewFailure err =
-    let
-        errMsg =
-            case err of
-                Api.Http.BadUrl url ->
-                    "Url " ++ url ++ " is bad"
-
-                Api.Http.Timeout ->
-                    "Timed Out"
-
-                Api.Http.NetworkError ->
-                    "Disconnected from the internet"
-
-                Api.Http.BadStatus { status, message } ->
-                    String.fromInt status ++ " " ++ message
-
-                Api.Http.BadBody message ->
-                    "Bad Body: " ++ message
-    in
-    [ div [ Attr.class "baconian-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
-
-
 view : Model -> View Msg
 view model =
     { title = "Baconian"
@@ -415,7 +391,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                viewFailure err
+                [ Components.Api.failure err ]
     }
 
 

@@ -1,8 +1,10 @@
+use anyhow::anyhow;
 use axum::Router;
 use diesel::Insertable;
 use serde::Serialize;
 
-use crate::{exp::ExpSource, models::User, schema::solves, AppState};
+use crate::{error::AppError, exp::ExpSource, models::User, schema, AppState};
+use std::convert::TryFrom;
 
 use self::profile::ProfileResponse;
 
@@ -10,12 +12,14 @@ pub mod aristocrat;
 pub mod auth;
 pub mod baconian;
 pub mod profile;
+pub mod solves;
 
 pub fn app() -> Router<AppState> {
     Router::new()
         .nest("/aristocrat", aristocrat::app())
         .nest("/baconian", baconian::app())
         .nest("/profile", profile::app())
+        .nest("/solves", solves::app())
         .nest("/auth", auth::app())
 }
 
@@ -29,13 +33,27 @@ pub struct SubmitResponse {
     total_exp: Option<i32>,
 }
 
+#[repr(i16)]
+#[derive(Serialize)]
 pub enum PuzzleType {
     Aristocrat = 0,
     Baconian = 1,
 }
 
+impl TryFrom<i16> for PuzzleType {
+    type Error = AppError;
+
+    fn try_from(v: i16) -> Result<Self, Self::Error> {
+        match v {
+            x if x == PuzzleType::Aristocrat as i16 => Ok(PuzzleType::Aristocrat),
+            x if x == PuzzleType::Baconian as i16 => Ok(PuzzleType::Baconian),
+            _ => Err(AppError::InternalServerError(anyhow!("invalid PuzzleType"))),
+        }
+    }
+}
+
 #[derive(Insertable)]
-#[diesel(table_name = solves)]
+#[diesel(table_name = schema::solves)]
 pub struct NewSolve {
     puzzle_type: i16,
     message_id: i32,

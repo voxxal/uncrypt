@@ -13,9 +13,7 @@ import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
-import Http
 import Json.Decode as D
-import Json.Encode as E
 import Layouts
 import Maybe.Extra as Maybe
 import Page exposing (Page)
@@ -23,6 +21,7 @@ import Route exposing (Route)
 import Shared
 import Shared.Msg
 import View exposing (View)
+import Components.Api
 
 
 page : Shared.Model -> Route () -> Page Model Msg
@@ -415,29 +414,6 @@ viewSuccess model puzzle =
     ]
 
 
-viewFailure : Api.Http.Error -> List (Html Msg)
-viewFailure err =
-    let
-        errMsg =
-            case err of
-                Api.Http.BadUrl url ->
-                    "Url " ++ url ++ " is bad"
-
-                Api.Http.Timeout ->
-                    "Timed Out"
-
-                Api.Http.NetworkError ->
-                    "Disconnected from the internet"
-
-                Api.Http.BadStatus { status, message } ->
-                    String.fromInt status ++ " " ++ message
-
-                Api.Http.BadBody message ->
-                    "Bad Body: " ++ message
-    in
-    [ div [ Attr.class "aristocrat-content text-content" ] [ text "Something went wrong...", br [] [], text errMsg ] ]
-
-
 view : Model -> View Msg
 view model =
     { title = "Aristocrat"
@@ -450,7 +426,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                viewFailure err
+                [Components.Api.failure err]
     }
 
 

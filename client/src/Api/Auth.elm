@@ -61,12 +61,3 @@ register { username, password, email } toMsg =
         , expect = Api.Http.expectJson toMsg authorizedResponseDecoder
         }
         |> Effect.sendCmd
-
-
-profile : String -> (Result Api.Http.Error Auth.User.User -> msg) -> Effect msg
-profile token toMsg =
-    Jwt.Http.get token
-        { url = "/api/profile"
-        , expect = Api.Http.expectJson toMsg Auth.User.decoder
-        }
-        |> Effect.sendCmd

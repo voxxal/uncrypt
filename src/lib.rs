@@ -1,5 +1,6 @@
 #![feature(array_zip)]
 #![feature(let_else)]
+#![feature(async_closure)]
 pub mod api;
 pub mod auth;
 pub mod error;
