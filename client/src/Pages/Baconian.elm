@@ -153,14 +153,23 @@ updateSuccess shared msg model puzzle =
                                 ( model, Effect.sendMsg SubmitSolution )
 
                             "Backspace" ->
-                                case Array.get model.index model.ciphertext of
-                                    Just _ ->
-                                        ( { model
-                                            | index = model.index + shift 1
-                                            , translation = Array.set model.index Nothing model.translation
-                                          }
-                                        , Effect.none
-                                        )
+                                case Array.get model.index model.translation of
+                                    Just some ->
+                                        if some /= Nothing then
+                                            ( { model
+                                                | index = model.index
+                                                , translation = Array.set model.index Nothing model.translation
+                                              }
+                                            , Effect.none
+                                            )
+
+                                        else
+                                            ( { model
+                                                | index = model.index + shift -1
+                                                , translation = Array.set (model.index - 1) Nothing model.translation
+                                              }
+                                            , Effect.none
+                                            )
 
                                     Nothing ->
                                         ( model, Effect.none )
@@ -183,7 +192,7 @@ updateSuccess shared msg model puzzle =
                                         in
                                         if Char.isAlpha pressedKey then
                                             ( { model
-                                                | index = model.index + shiftOverAnswered newTranslation 1
+                                                | index = model.index + shift 1
                                                 , translation = newTranslation
                                                 , solved = NotChecked
                                               }
@@ -391,7 +400,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                [ div [ Attr.class "text-content" ]  (Components.Api.failure err) ]
+                [ div [ Attr.class "text-content" ] (Components.Api.failure err) ]
     }
 
 

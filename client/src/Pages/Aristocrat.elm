@@ -161,13 +161,28 @@ updateSuccess shared msg model puzzle =
                         "Backspace" ->
                             case Array.get model.index model.ciphertext of
                                 Just char ->
-                                    ( { model
-                                        | index = model.index + shift 1
-                                        , translation = Dict.remove char model.translation
-                                        , reverseTrans = removeFromDictLists char model.reverseTrans
-                                      }
-                                    , Effect.none
-                                    )
+                                    case Dict.get char model.translation of
+                                        Just _ ->
+                                            ( { model
+                                                | translation = Dict.remove char model.translation
+                                                , reverseTrans = removeFromDictLists char model.reverseTrans
+                                              }
+                                            , Effect.none
+                                            )
+
+                                        Nothing ->
+                                            case Array.get (model.index - 1) model.ciphertext of
+                                                Just prevChar ->
+                                                    ( { model
+                                                        | index = model.index + shift -1
+                                                        , translation = Dict.remove prevChar model.translation
+                                                        , reverseTrans = removeFromDictLists prevChar model.reverseTrans
+                                                      }
+                                                    , Effect.none
+                                                    )
+
+                                                Nothing ->
+                                                    ( model, Effect.none )
 
                                 Nothing ->
                                     ( model, Effect.none )
@@ -185,7 +200,7 @@ updateSuccess shared msg model puzzle =
                                         letter =
                                             Char.toLower pressedKey
                                     in
-                                    if Char.isAlpha pressedKey then
+                                    if Char.isAlpha letter then
                                         case Array.get model.index model.ciphertext of
                                             Just char ->
                                                 let
@@ -196,6 +211,7 @@ updateSuccess shared msg model puzzle =
                                                         Dict.insert char letter model.translation
                                                 in
                                                 ( { model
+                                                    -- Should it shift over answers? Make this a setting
                                                     | index = model.index + shiftOverAnswered newTranslation 1
                                                     , translation = newTranslation
                                                     , reverseTrans =
@@ -426,7 +442,7 @@ view model =
                 viewSuccess model puzzle
 
             Api.Failure err ->
-                [ div [ Attr.class "text-content" ]  (Components.Api.failure err) ]
+                [ div [ Attr.class "text-content" ] (Components.Api.failure err) ]
     }
 
 

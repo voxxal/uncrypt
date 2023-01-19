@@ -338,6 +338,10 @@ body.dark .softSelected {
   background-color: transparent !important;
 }
 
+body.dark .puzzle.soled .selected {
+  color: var(--text-dark) !important;
+}
+
 .selected {
   background-color: var(--light-text-dark);
   color: var(--bg-dark);
